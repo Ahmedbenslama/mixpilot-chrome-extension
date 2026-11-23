@@ -4,12 +4,12 @@
 
 MixPilot is a Chrome extension concept for taking control of the audio mix in YouTube videos. Its intended end state is real-time, independent control of speech and background music, optional soundtrack recognition, and per-video listening preferences.
 
-> **Current status (v0.2.0, Phase A complete):**
-> - **Works today:** user-initiated YouTube tab capture, audio passthrough, master volume, and a lookahead peak limiter, all verified end-to-end in Chrome 158.
-> - **Model chosen:** the speech/music separation model is selected and benchmarked (see [`docs/MODEL_BENCHMARK.md`](./docs/MODEL_BENCHMARK.md)). It is **not wired into the extension yet**; that's Phase B.
+> **Current status (v0.3.0, Phase B complete):**
+> - **Works today:** live on-device speech/music separation on YouTube, with independent Speech, Music and Master gains, a level-matched A/B, and automatic fallback to the original audio if the device can't keep up.
+> - **Verified:** automated tests and objective measurements in Chrome 158 (see [`docs/MODEL_BENCHMARK.md`](./docs/MODEL_BENCHMARK.md)).
+> - **Not verified:** listening tests haven't been done yet, so separation is **not yet marked complete**.
+> - **Interim UI:** the popup is a functional placeholder until Phase C.
 > - **Not yet:** song identification.
->
-> The UI labels unavailable features as unavailable.
 
 ## What makes the product different
 
@@ -39,13 +39,19 @@ npm run build        # outputs the loadable extension to dist/
 2. Click **Load unpacked** and select the **`dist/`** folder.
 3. Open a YouTube video, click the MixPilot icon, then choose **Enable MixPilot**.
 
-Audio is routed through a local Web Audio graph and back to the same tab's output. Only master volume is active so far.
+Audio is processed locally and played back through the same tab's output.
+
+- **Delay:** processing adds about 70 ms, below the point where most people notice audio lagging behind the picture (about 125 ms).
+- **Startup:** about one second after enabling, the model is running and the Speech and Music sliders act on separated stems.
+- **Bundled model:** `models/dfn3_stream.onnx` (16 MB, MIT/Apache-2.0); see `models/MODEL_CARD.md`.
 
 ## Checks
 
 ```powershell
 npm run check        # typecheck + unit tests + build
-npm run test:e2e     # end-to-end: launches a throwaway Chrome profile, loads dist/, drives a CC-licensed YouTube video
+npm run test:e2e     # lifecycle E2E: throwaway Chrome profile, loads dist/, drives a CC-licensed YouTube video
+npm run test:e2e:separation   # live separation on YouTube: timing, stability, CPU, level matching, overload recovery
+npm run bench:harness         # ground truth: real-time engine in Chrome vs offline SI-SDR (needs bench/ data, see bench/README.md)
 ```
 
 The end-to-end test verifies capture, signal flow, gain accuracy, mute, and the stop/cleanup paths numerically. It can't judge how things sound; see `tests/MANUAL_QA.md` for the listening checks.
@@ -63,6 +69,8 @@ Open the extension popup and click **Disable MixPilot**. Capture also stops when
 | `storage` | Remember settings |
 | `https://*.youtube.com/*` | Know when the captured tab leaves YouTube (to stop capture), and later read the video timestamp for song history. No other sites. |
 
+The extension's CSP adds `'wasm-unsafe-eval'` so the **bundled** ONNX Runtime WebAssembly can compile. It doesn't allow remote code: `script-src` is still `'self'` only.
+
 ## Development status
 
 | Capability | Status |
@@ -73,8 +81,10 @@ Open the extension popup and click **Disable MixPilot**. Capture also stops when
 | Master gain (0–200%) | Implemented, E2E-tested (measured within 0.1 dB) |
 | Peak protection | Lookahead limiter, unit-tested; listening test pending |
 | Stop on tab close / leaving YouTube / extension reload | Implemented, E2E-tested |
-| Speech/music source separation | Model selected and benchmarked offline and in-browser; engine integration is Phase B |
-| Independent speech/music gains | Not implemented |
+| Speech/music source separation | Live in the extension (DeepFilterNet3, on-device). Live SI-SDR matches offline. **Listening tests pending.** |
+| Independent speech/music gains (0–200%) | Implemented on separate model outputs; E2E-tested |
+| A/B original (latency- and level-matched) | Implemented; E2E-tested (within 0.13 dB) |
+| Overload/unsupported fallback | Implemented; E2E-tested (worker stall → original audio → automatic recovery) |
 | Music recognition | Not implemented |
 | Per-video/channel profiles | Not implemented |
 | YouTube in-player controls | Not implemented |

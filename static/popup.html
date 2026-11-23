@@ -44,29 +44,24 @@
         <p class="hint">A protected output stage helps control peaks when boosting audio.</p>
       </section>
 
-      <section class="locked-card" aria-labelledby="stems-heading">
-        <div class="locked-header">
+      <section class="control-card" aria-labelledby="stems-heading">
+        <div class="section-heading">
           <div>
-            <div class="eyebrow">AI MIXING</div>
-            <h2 id="stems-heading">Separate the mix</h2>
+            <div class="eyebrow">AI STEMS · ON-DEVICE</div>
+            <h2 id="stems-heading">Speech &amp; music</h2>
           </div>
-          <span class="coming-soon">MODEL REQUIRED</span>
+          <div class="value-badge" id="sep-status">Off</div>
         </div>
-        <div class="stem-row">
-          <div class="stem-icon voice-icon">V</div>
-          <div class="stem-copy"><strong>Speech</strong><span>Isolate and control voices</span></div>
-          <span class="stem-state">Not active</span>
-        </div>
-        <div class="stem-row">
-          <div class="stem-icon music-icon">♪</div>
-          <div class="stem-copy"><strong>Music</strong><span>Keep, reduce or mute the soundtrack</span></div>
-          <span class="stem-state">Not active</span>
-        </div>
-        <p class="hint">Independent controls require a real-time source-separation model. This starter build does not pretend an equalizer can separate overlapping voices and music.</p>
+        <label class="stem-label" for="speech-slider"><span>Speech</span><output id="speech-value">100%</output></label>
+        <input id="speech-slider" class="range-input" type="range" min="0" max="200" step="1" value="100" />
+        <label class="stem-label" for="music-slider"><span>Music &amp; other sounds</span><output id="music-value">100%</output></label>
+        <input id="music-slider" class="range-input" type="range" min="0" max="200" step="1" value="100" />
+        <button id="ab-button" class="secondary-button" type="button" aria-pressed="false">Hear original (A/B)</button>
+        <p class="hint" id="sep-detail">Speech is separated by a neural network running locally (DeepFilterNet3). "Music" is everything the model did not classify as speech.</p>
       </section>
 
       <footer class="footer">
-        <span>MixPilot 0.1.0</span>
+        <span>MixPilot 0.3.0 · interim UI</span>
         <span>Audio stays in this tab</span>
       </footer>
     </main>

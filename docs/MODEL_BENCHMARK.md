@@ -89,12 +89,57 @@ Single-frame `session.run()` timings over 1,500 frames after 50 warm-up frames, 
 5. **Low-tier fallback:** GTCRN (RTF 0.06) is a possible "lite" mode, but it scores lower and is 16 kHz only, so its speech stem would be band-limited. It isn't planned for v1. Revisit if real low-end devices can't run DFN3.
 6. **Package size:** model 16 MB + WASM 15 MB ≈ 31 MB. The ONNX graph holds the FFT as 960×962 matrices (~7.4 MB). Moving the STFT into JS could shrink the model and speed it up; this is a possible optimisation.
 
+## In-extension results (Phase B, 2026-11-23, same machine, Chrome 158)
+
+### Real-time pipeline vs offline: ground truth
+
+`bench/web/run-harness.mjs` plays 6 of the benchmark mixtures through the **shipped `MixEngine`** in real time:
+- **Path:** AudioWorklet, message transport, worker, onnxruntime-web, DFN3.
+- **Method:** records the stems and scores them against the known references.
+
+| Clip | Speech SI-SDRi (live / offline) | Music SI-SDRi (live / offline) |
+|---|---|---|
+| carefree +5 dB | 7.53 / 7.50 | 11.82 / 11.77 |
+| windswept −5 dB | 7.78 / 7.72 | 4.13 / 4.08 |
+| infraction_dance 0 dB | 9.87 / 9.83 | 9.72 / 9.65 |
+| vocal_lost_in_a_dream +5 dB | 9.79 / 10.02 | 14.41 / 14.64 |
+| vocal_i_will_remember 0 dB | 8.81 / 8.75 | 8.74 / 8.65 |
+| scheming_weasel +10 dB | 3.52 / 3.50 | 11.34 / 11.35 |
+| **Mean** | **7.88 / 7.89** | **10.03 / 10.02** |
+
+The measured stem delay was exactly 3,360 samples (70 ms) on every clip, with 0 underruns.
+
+### Live on YouTube
+
+`tests/e2e/separation.e2e.mjs`, run on *Tears of Steel* (Blender Foundation, CC BY 3.0), with 60 s of sustained playback:
+
+| Metric | Result |
+|---|---|
+| Model load in the worker (cached) / first load | 250–290 ms / 770 ms |
+| Enable → separation running | 0.87–1.8 s (audio keeps playing, latency-matched, while loading) |
+| Inference per 10 ms hop | p50 2.2–2.3 ms, p95 2.5–4.2 ms, max 4.5–8.1 ms |
+| Underruns / overload events over 60 s | 0 / 0 |
+| Minimum headroom (worker lead over the read point) | 28 ms of the 40 ms jitter allowance; i.e. about 12 ms of the buffer actually used |
+| Processing delay added by MixPilot | 71.5 ms (30 model + 40 jitter buffer + 1.5 limiter), plus the audio output's own 40 ms that passthrough also has |
+| CPU, renderer processes, % of one core | 7.4% with YouTube playing alone → 39.1% with separation; **+32% of one core** (about 2% of this 16-thread CPU) |
+| Memory | Offscreen document 1.6 MB JS heap. Worker 3.4 MB JS heap + 13–27 MB ArrayBuffer backing stores. ONNX Runtime's WASM linear memory isn't visible to this CDP probe, so there's no total. |
+| Unity mix vs original | within 0.02–0.03 dB |
+| A/B original vs latency-matched original | within 0.02–0.13 dB |
+| 6 s total inference stall | Switched to "overloaded" and kept playing the original (never silent); recovered automatically 0.4 s after the stall ended |
+
+### Architecture change forced by measurement
+
+The plan was SharedArrayBuffer rings, which require a cross-origin-isolated document. Measured in Chrome 158: **tab capture fails ("Error starting tab capture") in a cross-origin-isolated offscreen document**, under both `COEP: require-corp` and `credentialless`.
+
+The engine therefore uses a direct worklet↔worker MessageChannel instead:
+- Audio moves as 10 ms hops in a fixed pool of transferable buffers, so the audio thread doesn't allocate.
+- Hops are dropped rather than queued when the worker stalls.
+
+Unit tests and the ground-truth harness show this transport keeps the stems sample-exact.
+
 ## Not yet measured
 
-- Real YouTube content, including fullband speech, effects, crowd noise and reverb.
-- Subjective listening quality.
-- End-to-end latency and CPU/memory inside the extension.
-- Long sessions.
-- Real low-tier hardware.
-
-These belong to Phase B and C.
+- **Subjective listening quality on real YouTube content.** Needs a human; see `tests/MANUAL_QA.md`.
+- **Real low-tier hardware.** Only this i7-13620H laptop has been measured.
+- **Sessions longer than a few minutes,** e.g. 30 min or more.
+- **ONNX Runtime WASM heap size.**

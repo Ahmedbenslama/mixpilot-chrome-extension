@@ -47,23 +47,23 @@ describe("isSupportedYouTubeUrl", () => {
 
 describe("reconcileSession", () => {
   it("drops a stale active session when the offscreen document is gone (extension reload/restart)", () => {
-    expect(reconcileSession({ active: true, activeTabId: 7 }, false)).toEqual({ active: false, activeTabId: null });
+    expect(reconcileSession({ active: true, activeTabId: 7, bypass: false }, false)).toEqual({ active: false, activeTabId: null, bypass: false });
   });
   it("keeps a live session", () => {
-    const s = { active: true, activeTabId: 7 };
+    const s = { active: true, activeTabId: 7, bypass: false };
     expect(reconcileSession(s, true)).toBe(s);
   });
   it("drops an active session with no tab id", () => {
-    expect(reconcileSession({ active: true, activeTabId: null }, true).active).toBe(false);
+    expect(reconcileSession({ active: true, activeTabId: null, bypass: false }, true).active).toBe(false);
   });
   it("leaves an inactive session alone", () => {
-    const s = { active: false, activeTabId: null };
+    const s = { active: false, activeTabId: null, bypass: false };
     expect(reconcileSession(s, true)).toBe(s);
   });
 });
 
 describe("shouldStopForTabEvent", () => {
-  const live = { active: true, activeTabId: 3 };
+  const live = { active: true, activeTabId: 3, bypass: false };
   it("stops when the captured tab closes", () => {
     expect(shouldStopForTabEvent(live, 3, { removed: true })).toBe(true);
   });
@@ -75,7 +75,7 @@ describe("shouldStopForTabEvent", () => {
     expect(shouldStopForTabEvent(live, 3, { newUrl: "https://www.youtube.com/watch?v=b", isYouTube: true })).toBe(false);
   });
   it("does nothing when inactive", () => {
-    expect(shouldStopForTabEvent({ active: false, activeTabId: null }, 3, { removed: true })).toBe(false);
+    expect(shouldStopForTabEvent({ active: false, activeTabId: null, bypass: false }, 3, { removed: true })).toBe(false);
   });
 });
 

@@ -19,6 +19,8 @@ const options = {
     offscreen: "src/offscreen/offscreen.ts",
     popup: "src/popup/popup.ts",
     "limiter.worklet": "src/audio/limiter.worklet.ts",
+    "separation.worklet": "src/audio/separation.worklet.ts",
+    "separation.worker": "src/engine/separation.worker.ts",
   },
   outdir: dist,
   bundle: true,
@@ -29,8 +31,19 @@ const options = {
   logLevel: "info",
 };
 
+// Runtime assets: the ONNX Runtime WASM binary (plain SIMD build; the WebGPU/JSEP build is not
+// needed, see docs/MODEL_BENCHMARK.md) and the separation model. Copied, never fetched remotely.
+const ASSETS = [
+  ["node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.wasm", "ort/ort-wasm-simd-threaded.wasm"],
+  ["models/dfn3_stream.onnx", "models/dfn3_stream.onnx"],
+];
+
 async function copyStatic() {
   await cp(join(root, "static"), dist, { recursive: true });
+  for (const [from, to] of ASSETS) {
+    await mkdir(dirname(join(dist, to)), { recursive: true });
+    await cp(join(root, from), join(dist, to));
+  }
 }
 
 await rm(dist, { recursive: true, force: true });
@@ -44,7 +57,7 @@ if (watch) {
 } else {
   await build(options);
   const manifest = JSON.parse(await readFile(join(dist, "manifest.json"), "utf8"));
-  for (const f of [manifest.background.service_worker, manifest.action.default_popup, "offscreen.html", "offscreen.js", "popup.js", "limiter.worklet.js"]) {
+  for (const f of [manifest.background.service_worker, manifest.action.default_popup, "offscreen.html", "offscreen.js", "popup.js", "limiter.worklet.js", "separation.worklet.js", "separation.worker.js", ...ASSETS.map((a) => a[1])]) {
     if (!existsSync(join(dist, f))) throw new Error(`build output missing: ${f}`);
   }
   console.log(`dist/ ready (manifest v${manifest.version}). Load it via chrome://extensions → Load unpacked → dist`);

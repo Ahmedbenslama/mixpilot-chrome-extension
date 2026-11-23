@@ -1,6 +1,6 @@
 {
   "name": "mixpilot-chrome-extension",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "description": "MixPilot: independent speech and music control for YouTube (Chrome MV3 extension).",
   "type": "module",
@@ -10,7 +10,9 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "check": "npm run typecheck && npm test && npm run build",
-    "test:e2e": "npm run build && node tests/e2e/extension.e2e.mjs"
+    "test:e2e": "npm run build && node tests/e2e/extension.e2e.mjs",
+    "test:e2e:separation": "npm run build && node tests/e2e/separation.e2e.mjs",
+    "bench:harness": "npm run build && node bench/web/run-harness.mjs"
   },
   "dependencies": {
     "onnxruntime-web": "1.31.1"

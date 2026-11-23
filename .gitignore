@@ -28,3 +28,8 @@ bench/listening/
 bench/export/df_patched/
 __pycache__/
 .playwright-mcp/
+
+# shipped model (MIT OR Apache-2.0; see models/MODEL_CARD.md)
+!models/dfn3_stream.onnx
+bench/web/harness.js
+bench/web/harness.html

@@ -1,6 +1,9 @@
 # MixPilot — Audit & Development Plan
 
-**Date:** 2026-11-23 · **Status:** Phase A complete: baseline fixed and E2E-tested, model selected (see `MODEL_BENCHMARK.md`). Next: Phase B.
+**Date:** 2026-11-23 · **Status:**
+- **Phase A complete:** baseline fixed and E2E-tested; model selected.
+- **Phase B complete:** live separation engine integrated and verified (see `MODEL_BENCHMARK.md` § In-extension results). Listening tests pending.
+- **Next:** Phase C (mixer UI).
 
 ## 1. Repository audit
 
@@ -75,7 +78,7 @@ offscreen document: getUserMedia(tab) → AudioContext
 ```
 
 - **Bounded buffers:** fixed-size SharedArrayBuffer rings. If inference falls behind by more than N blocks, the engine switches to latency-matched passthrough and shows "Separation paused — device too slow" rather than letting latency grow.
-- **Cross-origin isolation:** set `cross_origin_embedder_policy` / `cross_origin_opener_policy` in the manifest so the offscreen document gets SharedArrayBuffer and WASM threads. To be verified in Phase A.
+- **Cross-origin isolation:** *tested in Phase B and rejected.* Tab capture fails in cross-origin-isolated documents, so the engine uses a MessageChannel with pooled transferable buffers instead of SharedArrayBuffer.
 - **All ORT JS/WASM is bundled locally** (`ort.env.wasm.wasmPaths` set to an extension URL). Only the needed `.wasm` variants get copied into the package.
 - **Tooling:** TypeScript + esbuild (one small dev dependency) and Vitest for unit tests. Plain TS UI, no React, to keep the popup light. This needs `package.json` and a `dist/` build that becomes the loadable extension.
 

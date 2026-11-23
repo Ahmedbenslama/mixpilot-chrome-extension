@@ -87,6 +87,8 @@ try {
   await sleep(1000);
   const C = await attach(ctl);
   const msg = (m) => ev(C, `chrome.runtime.sendMessage(${JSON.stringify(m)})`);
+  await ev(C, `window.__log=[]; chrome.storage.onChanged.addListener((c,a)=>{ if (a==='local') window.__log.push({t:Date.now(), c:Object.fromEntries(Object.entries(c).map(([k,v])=>[k,v.newValue]))}) })`);
+  const step = (name) => ev(C, `window.__log.push({t:Date.now(), step:${JSON.stringify(name)}})`);
   const swTarget = async () => (await pages()).find((t) => t.type === "service_worker" && t.url.includes(ID));
   const sw = await attach((await swTarget()).targetId);
   const captured = () => ev(sw, `chrome.tabCapture.getCapturedTabs().then(x=>x.filter(t=>t.status==="active").length)`);
@@ -134,7 +136,7 @@ try {
       xs.push(st);
       await sleep(250);
     }
-    const finite = xs.map((s) => s?.outputRmsDb).filter(Number.isFinite);
+    const finite = xs.map((s) => s?.levels?.outputDb).filter(Number.isFinite);
     return { state: xs.at(-1), rmsDb: finite.length ? +(finite.reduce((a, b) => a + b, 0) / finite.length).toFixed(1) : -Infinity, frames: xs.length, skipped, video: await videoState() };
   }
 
@@ -146,7 +148,7 @@ try {
 
   const L1 = await levels(8, true);
   check("audio flows through the graph while the video plays", L1.state?.contextState === "running" && L1.rmsDb > -60,
-    { rmsDb: L1.rmsDb, sampleRate: L1.state?.sampleRate, baseLatencyMs: +(L1.state?.baseLatencyMs ?? 0).toFixed(1), outputLatencyMs: +(L1.state?.outputLatencyMs ?? 0).toFixed(1) });
+    { rmsDb: L1.rmsDb, sampleRate: L1.state?.sampleRate, processingLatencyMs: L1.state?.processingLatencyMs, outputLatencyMs: +(L1.state?.outputLatencyMs ?? 0).toFixed(1), separation: L1.state?.status });
 
   await ev(Y, `document.querySelector('video').pause()`);
   await sleep(800);
@@ -160,24 +162,25 @@ try {
     const d = [];
     for (let i = 0; i < n; i++) {
       const st = (await msg({ type: "GET_ENGINE_STATS" })).state;
-      if (Number.isFinite(st?.inputRmsDb) && st.inputRmsDb > -60 && st.outputPeakDb < -3) d.push(st.outputRmsDb - st.inputRmsDb);
+      if (Number.isFinite(st?.levels?.referenceDb) && st.levels.referenceDb > -60 && st.levels.outputPeakDb < -3) d.push(st.levels.outputDb - st.levels.referenceDb);
       await sleep(150);
     }
     d.sort((a, b) => a - b);
     return d.length ? +d[Math.floor(d.length / 2)].toFixed(2) : NaN;
   }
-  await msg({ type: "SET_MASTER_GAIN", value: 1 }); await sleep(400);
+  await step("gain test start");
+  await msg({ type: "SET_MIX", mix: { masterGain: 1 } }); await sleep(400);
   const g100 = await appliedGainDb();
-  await msg({ type: "SET_MASTER_GAIN", value: 0.5 }); await sleep(400);
+  await msg({ type: "SET_MIX", mix: { masterGain: 0.5 } }); await sleep(400);
   const g50 = await appliedGainDb();
-  await msg({ type: "SET_MASTER_GAIN", value: 1.5 }); await sleep(400);
+  await msg({ type: "SET_MIX", mix: { masterGain: 1.5 } }); await sleep(400);
   const g150 = await appliedGainDb();
-  check("master gain applies the set level (output - input: 100% = 0 dB, 50% = -6.0 dB, 150% = +3.5 dB)",
+  check("master gain applies the set level (output - latency-matched original: 100% = 0 dB, 50% = -6.0 dB, 150% = +3.5 dB)",
     Math.abs(g100) < 0.5 && Math.abs(g50 + 6.02) < 0.5 && Math.abs(g150 - 3.52) < 0.5, { g100, g50, g150, video: await videoState() });
-  await msg({ type: "SET_MASTER_GAIN", value: 0 }); await sleep(500);
+  await msg({ type: "SET_MIX", mix: { masterGain: 0 } }); await sleep(500);
   const Lmute = await levels(4);
   check("master 0% is an exact mute", Lmute.rmsDb === -Infinity, Lmute.rmsDb);
-  await msg({ type: "SET_MASTER_GAIN", value: 1 }); await sleep(300);
+  await msg({ type: "SET_MIX", mix: { masterGain: 1 } }); await sleep(300);
 
   await ev(Y, `(()=>{ const a=[...document.querySelectorAll('a[href*="/watch?v="]')].find(a=>!a.href.includes('aqz-KE-bpKQ')); if(a){a.click(); return a.href} history.pushState({},'','/watch?v=YE7VzlLtp-4'); return 'pushState' })()`, true);
   await sleep(3500);
@@ -211,6 +214,7 @@ try {
   const Lc = await levels(6, true);
   check("5 rapid stop/start cycles leave exactly one live capture, with audio", cycleOk && Lc.rmsDb > -60, { cycles: cycleLog, rmsDb: Lc.rmsDb });
 
+  if (process.env.E2E_DEBUG_STORAGE) console.log("STORAGE LOG", JSON.stringify(await ev(C, "window.__log")));
   // reload the extension while capturing
   await c.send("Extensions.loadUnpacked", { path: EXT });
   await sleep(2000);

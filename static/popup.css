@@ -58,3 +58,9 @@ h2 { margin: 4px 0 0; font-size: 14px; letter-spacing: -.2px; }
 .stem-state { margin-left: auto; color: #737d8b; font-size: 9px; white-space: nowrap; }
 .locked-card .hint { margin-top: 8px; }
 .footer { display: flex; justify-content: space-between; padding: 14px 2px 0; color: #647080; font-size: 9px; }
+.stem-label { display: flex; justify-content: space-between; margin-top: 14px; font-size: 11px; color: #c9d0da; }
+.stem-label output { color: #a9f0cf; font-variant-numeric: tabular-nums; font-weight: 700; }
+.stem-label + .range-input { margin-top: 10px; }
+.secondary-button { width: 100%; margin-top: 16px; border: 1px solid #303945; border-radius: 9px; background: transparent; color: #dfe5ec; padding: 9px; font-size: 11px; font-weight: 700; cursor: pointer; }
+.secondary-button[aria-pressed="true"] { background: #1d2a24; border-color: #8de5bd; color: #a9f0cf; }
+.secondary-button:focus-visible, .primary-button:focus-visible { outline: 2px solid #8de5bd; outline-offset: 2px; }

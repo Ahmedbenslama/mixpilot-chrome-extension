@@ -2,9 +2,10 @@
  * Service worker: event routing, tab validation, session lifecycle. No audio processing here.
  * Capture lives in the offscreen document, which this worker creates on demand and closes on stop.
  */
-import { clampGain, MASTER_GAIN_MAX } from "../shared/gain";
+import { clampGain, MASTER_GAIN_MAX, STEM_GAIN_MAX } from "../shared/gain";
 import {
-  type EngineStats,
+  type EngineSnapshot,
+  type MixUpdate,
   DEFAULT_PREFERENCES,
   DEFAULT_SESSION,
   type OffscreenEvent,
@@ -102,7 +103,7 @@ async function startCapture(): Promise<Response> {
 
   try {
     await ensureOffscreen();
-    const res = await toOffscreen({ type: "OFFSCREEN_START_CAPTURE", streamId, masterGain: prefs.masterGain });
+    const res = await toOffscreen({ type: "OFFSCREEN_START_CAPTURE", streamId, prefs, bypass: false });
     if (!res?.ok) throw new Error(res?.error || "The audio engine did not start.");
   } catch (e) {
     // The offscreen side already stops its tracks on failure; closing the document guarantees it.
@@ -115,7 +116,7 @@ async function startCapture(): Promise<Response> {
     };
   }
 
-  await chrome.storage.session.set({ active: true, activeTabId: tab.id } satisfies SessionState);
+  await chrome.storage.session.set({ active: true, activeTabId: tab.id, bypass: false } satisfies SessionState);
   return { ok: true, state: await getPublicState(), message: "MixPilot is processing this tab's audio." };
 }
 
@@ -135,19 +136,34 @@ async function stopCapture(): Promise<Response> {
   return { ok: true, state: await getPublicState(), message: "MixPilot is off. Original audio restored." };
 }
 
-async function setMasterGain(value: unknown): Promise<Response> {
-  const gain = clampGain(value, MASTER_GAIN_MAX);
-  if (gain === null) return { ok: false, error: "Master volume must be a number." };
-  await chrome.storage.local.set({ masterGain: gain } satisfies Partial<Preferences>);
-  const session = await getSession();
-  if (session.active) {
-    const res = await toOffscreen({ type: "OFFSCREEN_SET_MASTER_GAIN", value: gain });
+async function setMix(mix: MixUpdate | undefined): Promise<Response> {
+  if (!mix || typeof mix !== "object") return { ok: false, error: "Invalid mix update." };
+  const next: Partial<Preferences> = {};
+  const fields: [keyof MixUpdate, number][] = [["speechGain", STEM_GAIN_MAX], ["musicGain", STEM_GAIN_MAX], ["masterGain", MASTER_GAIN_MAX]];
+  for (const [key, max] of fields) {
+    if (mix[key] === undefined) continue;
+    const v = clampGain(mix[key], max);
+    if (v === null) return { ok: false, error: "Volume values must be numbers." };
+    next[key] = v;
+  }
+  await chrome.storage.local.set(next);
+  if ((await getSession()).active) {
+    const res = await toOffscreen({ type: "OFFSCREEN_SET_MIX", mix: next });
     if (!res?.ok) return { ok: false, error: res.error, state: await getPublicState() };
   }
   return { ok: true, state: await getPublicState() };
 }
 
-async function getEngineStats(): Promise<Response<EngineStats | null>> {
+async function setBypass(on: boolean): Promise<Response> {
+  const session = await getSession();
+  if (!session.active) return { ok: false, error: "MixPilot is not active.", state: await getPublicState() };
+  const res = await toOffscreen({ type: "OFFSCREEN_SET_BYPASS", on: Boolean(on) });
+  if (!res?.ok) return { ok: false, error: res.error, state: await getPublicState() };
+  await chrome.storage.session.set({ bypass: Boolean(on) } satisfies Partial<SessionState>);
+  return { ok: true, state: await getPublicState() };
+}
+
+async function getEngineStats(): Promise<Response<EngineSnapshot | null>> {
   if (!(await getSession()).active) return { ok: true, state: null };
   const res = await toOffscreen({ type: "OFFSCREEN_GET_STATS" });
   return res.ok ? { ok: true, state: res.stats ?? null } : { ok: false, error: res.error };
@@ -183,8 +199,11 @@ chrome.runtime.onMessage.addListener((raw, sender, sendResponse) => {
     case "GET_ENGINE_STATS":
       work = getEngineStats();
       break;
-    case "SET_MASTER_GAIN":
-      work = setMasterGain((msg as Extract<PopupRequest, { type: "SET_MASTER_GAIN" }>).value);
+    case "SET_MIX":
+      work = setMix((msg as Extract<PopupRequest, { type: "SET_MIX" }>).mix);
+      break;
+    case "SET_BYPASS":
+      work = setBypass((msg as Extract<PopupRequest, { type: "SET_BYPASS" }>).on);
       break;
     default:
       return false;

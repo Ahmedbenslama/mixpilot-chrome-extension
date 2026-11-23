@@ -15,9 +15,24 @@ Automated coverage: `npm run check` (unit) and `npm run test:e2e` (capture, sign
 - [ ] Reload the extension in `chrome://extensions` while active → tab audio returns to normal; the popup shows Inactive.
 - [ ] 30-minute session: no drift, crackle, or growing delay.
 
-## Phase B onward: source separation (template; fill in once the engine lands)
+## Phase B: source separation listening test
 
-Use `bench/listening/` for offline stems, then real YouTube content:
+**Setup:**
+1. Run `npm run build` and load `dist/`.
+2. Enable MixPilot on a video and wait for the stem status to read **Separating** (about 1 s).
+3. For each clip below, write down: date, video URL and timestamp, and what you heard.
+
+**Quick checks on every clip:**
+- [ ] **Speech 0%, Music 100%:** voices disappear or almost disappear. Note any residue, warbling or "underwater" artefacts in the music.
+- [ ] **Speech 100%, Music 0%:** you hear mostly clean dialogue. Note any music bleed, choppy words or a robotic tone.
+- [ ] **Speech 150%, Music 30%:** dialogue is clearly easier to follow than the original.
+- [ ] **Both at 100%:** sounds identical to the original. Toggle **Hear original (A/B)** several times: there should be no jump in time or level.
+- [ ] Moving either slider is smooth, with no clicks.
+- [ ] Lip sync looks acceptable. Processing adds about 70 ms.
+
+**Offline samples:** `bench/listening/` has 4 synthetic examples (original, speech stem, music stem) for a first impression.
+
+**Real YouTube content to try:**
 
 - [ ] Dialogue with quiet background music.
 - [ ] Dialogue with music louder than the voice.

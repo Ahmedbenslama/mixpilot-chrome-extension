@@ -32,7 +32,26 @@ DynamicsCompressorNode (basic peak protection)
 AudioContext.destination
 ```
 
-### Target separated-stem graph
+### Implemented separated-stem graph (v0.3.0)
+
+```text
+tab MediaStream -> MediaStreamSource -+-> AudioWorklet "mixpilot-separation" (StemMixer)
+                                      |      |  mid (L+R)/2 in 10 ms hops --MessageChannel--> Worker: ORT-web WASM + DFN3
+                                      |      |  speech hops at the same index  <--------------
+                                      |      +- out0 speech x w -> Speech GainNode -+
+                                      |      +- out1 music  x w -> Music GainNode  -+-> processed -+
+                                      |      +- out3 original x (1-w) (fallback) ---+              +-> Master -> lookahead limiter -> destination
+                                      |      +- out2 original (latency-matched, A/B) -> original --+
+                                      +-> direct (zero latency; only when separation is unavailable)
+```
+
+- **Delay alignment:** the latency-matched original is the input delayed by D = 1,440 (model) + jitter allowance (default 1,920) samples.
+- **Speech stem:** the model output read at index n − jitter, which is exactly input n − D.
+- **Music stem:** original minus speech, so speech + music = original exactly.
+- **Fallback weight `w`:** w = 0 while the model loads, when a needed sample is missing, or during an overload hold (3 s). The fallback output then supplies the original, so the sum stays exact.
+- **No SharedArrayBuffer:** Chrome rejects tab capture in cross-origin-isolated documents, so the worklet and worker exchange transferable buffers from a fixed pool.
+
+### Original target diagram (for reference)
 
 ```text
 Captured tab audio
