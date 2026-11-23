@@ -19,7 +19,7 @@ MixPilot is a Chrome MV3 extension for YouTube: two independent stems (**Speech*
 - **Stay inside the project folder.**
 - **No pushing, publishing or destructive operations without explicit permission.** The user approved creating a GitHub repo and pushing in the message that produced this file. That approval doesn't carry over to future pushes.
 - **Progress updates at major milestones:** architectural decisions, technical limitations, test results.
-- **Commits:** local, one per phase, with a trailer line `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
+- **Commits:** local, one per phase, authored by the user only. **Do not add `Co-Authored-By` or any AI attribution lines** to commits or PRs (explicit user instruction).
 
 ## 2. Current state: v0.3.0
 
