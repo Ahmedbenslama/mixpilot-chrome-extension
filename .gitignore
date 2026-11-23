@@ -16,3 +16,15 @@ model-cache/
 *.mp3
 *.webm
 *.m4a
+
+# benchmark artefacts (re-creatable; see bench/README.md)
+bench/.venv/
+bench/.venv-dfn/
+bench/models/
+bench/audio/raw/
+bench/audio/mix/
+bench/out/
+bench/listening/
+bench/export/df_patched/
+__pycache__/
+.playwright-mcp/
