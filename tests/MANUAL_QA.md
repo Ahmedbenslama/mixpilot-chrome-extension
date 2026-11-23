@@ -1,41 +1,40 @@
-# Manual QA — MixPilot Starter
+# Manual QA — MixPilot
 
-## Starter passthrough checks
+Automated coverage: `npm run check` (unit) and `npm run test:e2e` (capture, signal flow, gain accuracy, mute and cleanup, measured numerically in Chrome). The items below need a human: listening, real interactions, and permission dialogs.
 
-- [ ] Load unpacked extension from the repository root.
-- [ ] Open a standard YouTube watch page and start playback.
-- [ ] Click MixPilot and enable capture.
-- [ ] Confirm audio remains audible and is not duplicated.
-- [ ] Move master volume to 50%, 100%, 150%, 200%, and 0%.
-- [ ] Confirm gain changes are smooth and do not cause clicks.
-- [ ] Disable MixPilot and confirm playback returns to its ordinary path.
-- [ ] Repeat enable/disable at least five times.
-- [ ] Close the captured tab and confirm the session is cleaned up.
-- [ ] Navigate the captured tab away from YouTube and confirm capture stops.
-- [ ] Try a non-YouTube tab and confirm a clear error is shown.
-- [ ] Deny capture permission and confirm the extension reports the failure.
-- [ ] Reload the extension while capture is active and check that audio can be recovered.
+## Phase A: passthrough (record the date, Chrome version and machine)
 
-## Future source-separation checks
+- [ ] Load `dist/` unpacked; open a YouTube video; click the MixPilot icon → **Enable**.
+- [ ] Audio stays audible, with **no doubling or echo** and no audible delay against the picture.
+- [ ] Compare by ear with MixPilot off: the level at 100% master sounds the same as off.
+- [ ] Move master through 0 → 50 → 100 → 150 → 200%: smooth, no clicks or zipper noise.
+- [ ] At 150–200% on a loud scene: no harsh clipping (the limiter should hold peaks below −1 dBFS).
+- [ ] Disable: playback returns to normal immediately.
+- [ ] Close the popup while active: audio continues; reopening shows "Active".
+- [ ] Non-YouTube tab → Enable shows a clear error and changes nothing.
+- [ ] Reload the extension in `chrome://extensions` while active → tab audio returns to normal; the popup shows Inactive.
+- [ ] 30-minute session: no drift, crackle, or growing delay.
+
+## Phase B onward: source separation (template; fill in once the engine lands)
+
+Use `bench/listening/` for offline stems, then real YouTube content:
 
 - [ ] Dialogue with quiet background music.
 - [ ] Dialogue with music louder than the voice.
-- [ ] Music-only intro/outro.
-- [ ] Speech-only section.
-- [ ] Singing or vocal music overlapping dialogue.
-- [ ] Two people speaking at once.
-- [ ] Music with strong bass and percussion.
-- [ ] Outdoor background noise and room echo.
-- [ ] Long session (at least 30 minutes) to find memory leaks and queue growth.
-- [ ] Compare original, speech-only, music-only, and balanced outputs.
-- [ ] Measure latency, CPU, memory, and dropped/underrun audio blocks.
+- [ ] Music-only intro/outro (Speech stem should be near silent).
+- [ ] Speech-only section (Music stem should be near silent).
+- [ ] Sung vocals under dialogue (singing should land in Music).
+- [ ] Two people speaking at once; different accents.
+- [ ] Strong bass/percussion music.
+- [ ] Outdoor noise, room echo, crowd.
+- [ ] Quiet speech followed by a loud effect.
+- [ ] Long session (≥ 30 min): memory, CPU, latency stable.
+- [ ] Record end-to-end latency, CPU %, memory, underruns, intelligibility and music artefacts.
 
-## Future recognition checks
+## Recognition (Phase D)
 
-- [ ] Identify a clean instrumental section.
-- [ ] Identify music while dialogue overlaps it.
-- [ ] Handle no-match and network failure.
-- [ ] Confirm explicit consent appears before audio is sent.
-- [ ] Confirm the timestamp and video URL are saved with the result.
-- [ ] Confirm raw audio is not retained after recognition.
-- [ ] Confirm deleting one history item and clearing all history work.
+- [ ] Identify a clean instrumental section, and one with dialogue over the music.
+- [ ] Handle no-match and network failure without affecting playback.
+- [ ] Consent sheet shows exactly what is sent and to whom, before anything is sent.
+- [ ] Timestamp and video URL saved; clicking seeks back.
+- [ ] No raw audio retained; delete-one and delete-all both work.

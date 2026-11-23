@@ -1,6 +1,6 @@
 # MixPilot — Audit & Development Plan
 
-**Date:** 2026-11-23 · **Status:** Phase A (audit) complete; model benchmarking not yet run.
+**Date:** 2026-11-23 · **Status:** Phase A complete: baseline fixed and E2E-tested, model selected (see `MODEL_BENCHMARK.md`). Next: Phase B.
 
 ## 1. Repository audit
 
@@ -16,7 +16,7 @@
 
 There is no source separation, recognition, TypeScript, build step, or automated test. The folder is **not a git repository**. The `gh` CLI is not installed.
 
-### Baseline bugs found (to fix in Phase A)
+### Baseline bugs found: all fixed in Phase A and covered by unit or E2E tests
 
 1. **Stale "active" state after extension reload or browser restart.** State lives in `chrome.storage.local`, which survives reloads, but the offscreen document and capture don't. The popup then shows "Active" with nothing running, and the next Enable click returns "already active" without capturing. Fix: keep session state in `chrome.storage.session` and reconcile it against whether the offscreen document exists.
 2. **No `track.onended` handling.** If Chrome ends the capture (tab crash, discard), the service worker is never told and the state stays "active".
@@ -25,6 +25,8 @@ There is no source separation, recognition, TypeScript, build step, or automated
 5. **Failure after `getMediaStreamId` but before the graph is ready** can leave a stream ID unconsumed. The offscreen side cleans up, but the service worker doesn't report whether audio was restored.
 6. **The "limiter" is a compressor** (−2 dBFS threshold, ratio 20, 3 ms attack). It's acceptable as basic peak protection, but it isn't a brickwall limiter and lets fast transients overshoot. This gets replaced by a lookahead limiter in the worklet.
 7. **Popup error colour is set inline**, and the slider track gradient is computed in JS. Both are cosmetic and will be replaced in the new UI anyway.
+8. *(found during the fix)* **The "stop when leaving YouTube" check could never fire.** With only `activeTab`, Chrome withholds `changeInfo.url` once the tab goes to another site. Fixed with the narrow `https://*.youtube.com/*` host permission: the URL becomes unreadable exactly when the tab leaves YouTube.
+9. *(found by E2E measurement)* **The starter's output stage made everything +1.35 dB louder at 100% master.** DynamicsCompressorNode applies automatic make-up gain. It was replaced by a unit-tested lookahead limiter that is bit-exact below its −1 dBFS ceiling. Measured after the fix: 100% → −0.04 dB, 50% → −5.99 dB, 150% → +3.58 dB.
 
 ## 2. The constraint that drives the architecture: lip sync
 

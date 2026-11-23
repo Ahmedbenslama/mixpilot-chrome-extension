@@ -4,7 +4,12 @@
 
 MixPilot is a Chrome extension concept for taking control of the audio mix in YouTube videos. Its intended end state is real-time, independent control of speech and background music, optional soundtrack recognition, and per-video listening preferences.
 
-> **Current starter status (v0.1.0):** this repository contains a Manifest V3 extension scaffold with user-initiated tab-audio capture, audio passthrough, master-volume control, and a protected output stage. It does **not** yet separate speech from music or identify songs. The UI labels those features as unavailable rather than pretending that an equalizer can separate overlapping sources.
+> **Current status (v0.2.0, Phase A complete):**
+> - **Works today:** user-initiated YouTube tab capture, audio passthrough, master volume, and a lookahead peak limiter, all verified end-to-end in Chrome 158.
+> - **Model chosen:** the speech/music separation model is selected and benchmarked (see [`docs/MODEL_BENCHMARK.md`](./docs/MODEL_BENCHMARK.md)). It is **not wired into the extension yet**; that's Phase B.
+> - **Not yet:** song identification.
+>
+> The UI labels unavailable features as unavailable.
 
 ## What makes the product different
 
@@ -21,31 +26,54 @@ The full product spec and Claude Code build instructions are in:
 - [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) — Chrome audio-capture and processing architecture.
 - [`docs/COMPETITOR_RESEARCH.md`](./docs/COMPETITOR_RESEARCH.md) — initial market comparison and differentiation.
 
-## Load the starter extension locally
+## Build and load locally
 
-1. Download or clone this repository.
-2. Open `chrome://extensions` in Chrome.
-3. Enable **Developer mode**.
-4. Choose **Load unpacked**.
-5. Select this repository folder (the folder containing `manifest.json`).
-6. Open a YouTube video, click the MixPilot extension icon, and choose **Enable MixPilot**.
+Requires Node.js 20 or newer.
 
-The first activation uses Chrome's tab-capture permission. Audio is routed through a local Web Audio graph and back to the same tab's output. The starter only implements master volume; separate speech/music controls are not active yet.
+```powershell
+npm install
+npm run build        # outputs the loadable extension to dist/
+```
+
+1. Open `chrome://extensions` and enable **Developer mode**.
+2. Click **Load unpacked** and select the **`dist/`** folder.
+3. Open a YouTube video, click the MixPilot icon, then choose **Enable MixPilot**.
+
+Audio is routed through a local Web Audio graph and back to the same tab's output. Only master volume is active so far.
+
+## Checks
+
+```powershell
+npm run check        # typecheck + unit tests + build
+npm run test:e2e     # end-to-end: launches a throwaway Chrome profile, loads dist/, drives a CC-licensed YouTube video
+```
+
+The end-to-end test verifies capture, signal flow, gain accuracy, mute, and the stop/cleanup paths numerically. It can't judge how things sound; see `tests/MANUAL_QA.md` for the listening checks.
 
 ## Stop audio processing
 
-Open the extension popup and click **Disable MixPilot**. The extension also stops capture when the captured tab is closed or navigates away from YouTube.
+Open the extension popup and click **Disable MixPilot**. Capture also stops when the captured tab closes, navigates away from YouTube, or when the extension is reloaded.
+
+## Permissions
+
+| Permission | Why |
+|---|---|
+| `tabCapture` + `activeTab` | Capture the current tab's audio, only after you click the extension |
+| `offscreen` | Host the audio engine in a hidden extension page; MV3 service workers can't run Web Audio |
+| `storage` | Remember settings |
+| `https://*.youtube.com/*` | Know when the captured tab leaves YouTube (to stop capture), and later read the video timestamp for song history. No other sites. |
 
 ## Development status
 
 | Capability | Status |
 |---|---|
-| Manifest V3 scaffold | Implemented |
-| User-initiated YouTube tab capture | Implemented |
-| Audio passthrough | Implemented |
-| Master gain (0–200%) | Implemented |
-| Output dynamics protection | Basic implementation; needs listening tests |
-| Speech/music source separation | Not implemented |
+| Manifest V3 scaffold (TypeScript, esbuild, Vitest) | Implemented |
+| User-initiated YouTube tab capture | Implemented, E2E-tested |
+| Audio passthrough | Implemented, E2E-tested |
+| Master gain (0–200%) | Implemented, E2E-tested (measured within 0.1 dB) |
+| Peak protection | Lookahead limiter, unit-tested; listening test pending |
+| Stop on tab close / leaving YouTube / extension reload | Implemented, E2E-tested |
+| Speech/music source separation | Model selected and benchmarked offline and in-browser; engine integration is Phase B |
 | Independent speech/music gains | Not implemented |
 | Music recognition | Not implemented |
 | Per-video/channel profiles | Not implemented |

@@ -35,11 +35,13 @@ button, input { font: inherit; }
 .primary-button:disabled { cursor: wait; opacity: .6; }
 .button-icon { font-size: 11px; }
 .message { min-height: 16px; padding-top: 9px; color: #7f8998; font-size: 10px; text-align: center; }
+.message.error { color: #ff9b9b; }
 .control-card, .locked-card { border: 1px solid #272d37; border-radius: 14px; background: #12161d; padding: 14px; margin-top: 12px; }
 .section-heading, .locked-header { display: flex; align-items: center; justify-content: space-between; }
 h2 { margin: 4px 0 0; font-size: 14px; letter-spacing: -.2px; }
 .value-badge { padding: 5px 8px; border-radius: 7px; background: #202a30; color: #a9f0cf; font-size: 11px; font-weight: 750; font-variant-numeric: tabular-nums; }
-.range-input { width: 100%; margin: 19px 0 6px; appearance: none; height: 4px; border-radius: 9px; background: linear-gradient(90deg, #8de5bd 0%, #8de5bd 50%, #303945 50%, #303945 100%); outline: none; }
+.range-input { width: 100%; margin: 19px 0 6px; appearance: none; height: 4px; border-radius: 9px; --fill: 50%; background: linear-gradient(90deg, #8de5bd 0%, #8de5bd var(--fill), #303945 var(--fill), #303945 100%); }
+.range-input:focus-visible { outline: 2px solid #8de5bd; outline-offset: 4px; }
 .range-input::-webkit-slider-thumb { appearance: none; width: 14px; height: 14px; border: 3px solid #12161d; border-radius: 50%; background: #8de5bd; box-shadow: 0 0 0 1px #8de5bd; cursor: pointer; }
 .range-input::-moz-range-thumb { width: 10px; height: 10px; border: 3px solid #12161d; border-radius: 50%; background: #8de5bd; box-shadow: 0 0 0 1px #8de5bd; cursor: pointer; }
 .range-labels { display: flex; justify-content: space-between; color: #717b89; font-size: 9px; }
