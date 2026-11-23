@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <title>MixPilot</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div class="brand-lockup">
+          <div class="brand-mark" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+          <div>
+            <div class="brand-name">mixpilot<span>.</span></div>
+            <div class="brand-subtitle">YOUR VIDEO. YOUR MIX.</div>
+          </div>
+        </div>
+        <div class="status-pill" id="status-pill"><span class="status-dot"></span><span id="status-text">Inactive</span></div>
+      </header>
+
+      <section class="hero">
+        <div class="eyebrow">YOUTUBE AUDIO</div>
+        <h1>Hear it<br /><span>your way.</span></h1>
+        <p>Take control of the sound without changing the video.</p>
+        <button id="toggle-button" class="primary-button" type="button">
+          <span class="button-icon" id="button-icon">▶</span>
+          <span id="button-label">Enable MixPilot</span>
+        </button>
+        <div class="message" id="message" role="status" aria-live="polite">Open a YouTube video to get started.</div>
+      </section>
+
+      <section class="control-card" aria-labelledby="master-heading">
+        <div class="section-heading">
+          <div>
+            <div class="eyebrow">OUTPUT</div>
+            <h2 id="master-heading">Master volume</h2>
+          </div>
+          <div class="value-badge" id="master-value">100%</div>
+        </div>
+        <input id="master-slider" class="range-input" type="range" min="0" max="200" step="1" value="100" aria-label="Master volume" />
+        <div class="range-labels"><span>Mute</span><span>Original</span><span>Boost</span></div>
+        <p class="hint">A protected output stage helps control peaks when boosting audio.</p>
+      </section>
+
+      <section class="locked-card" aria-labelledby="stems-heading">
+        <div class="locked-header">
+          <div>
+            <div class="eyebrow">AI MIXING</div>
+            <h2 id="stems-heading">Separate the mix</h2>
+          </div>
+          <span class="coming-soon">MODEL REQUIRED</span>
+        </div>
+        <div class="stem-row">
+          <div class="stem-icon voice-icon">V</div>
+          <div class="stem-copy"><strong>Speech</strong><span>Isolate and control voices</span></div>
+          <span class="stem-state">Not active</span>
+        </div>
+        <div class="stem-row">
+          <div class="stem-icon music-icon">♪</div>
+          <div class="stem-copy"><strong>Music</strong><span>Keep, reduce or mute the soundtrack</span></div>
+          <span class="stem-state">Not active</span>
+        </div>
+        <p class="hint">Independent controls require a real-time source-separation model. This starter build does not pretend an equalizer can separate overlapping voices and music.</p>
+      </section>
+
+      <footer class="footer">
+        <span>MixPilot 0.1.0</span>
+        <span>Audio stays in this tab</span>
+      </footer>
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>
