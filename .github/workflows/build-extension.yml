@@ -1,0 +1,28 @@
+# Builds the loadable extension and publishes it as a downloadable zip.
+# Download it from the run page: Actions -> latest run -> Artifacts -> mixpilot-extension.
+name: Build extension zip
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - name: Zip dist (manifest at the zip root, as Chrome expects)
+        run: cd dist && zip -r ../mixpilot-extension.zip . -x "*.map"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mixpilot-extension
+          path: mixpilot-extension.zip

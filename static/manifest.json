@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "MixPilot — YouTube Audio Control",
   "short_name": "MixPilot",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Take control of speech, music and loudness in YouTube videos.",
   "minimum_chrome_version": "116",
   "permissions": [
@@ -18,9 +18,15 @@
     "service_worker": "service-worker.js",
     "type": "module"
   },
+  "content_scripts": [
+    {
+      "matches": ["https://*.youtube.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
   "action": {
-    "default_title": "MixPilot audio controls",
-    "default_popup": "popup.html",
+    "default_title": "MixPilot: click to turn audio processing on or off",
     "default_icon": {
       "16": "icons/icon16.png",
       "32": "icons/icon32.png"

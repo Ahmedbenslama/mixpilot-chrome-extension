@@ -22,6 +22,7 @@ import { reconcileSession, shouldStopForTabEvent } from "../shared/session";
 import { isSupportedYouTubeUrl } from "../shared/youtube";
 
 const OFFSCREEN_PATH = "offscreen.html";
+const YOUTUBE_TAB_PATTERN = "https://*.youtube.com/*";
 const serial = createSerialQueue();
 
 // ---------------------------------------------------------------- storage
@@ -77,10 +78,28 @@ function toOffscreen(msg: WithoutTarget<OffscreenRequest>): Promise<OffscreenRes
   return chrome.runtime.sendMessage({ target: "offscreen", ...msg } as OffscreenRequest);
 }
 
+// ---------------------------------------------------------------- UI sync (page sliders + toolbar badge)
+
+/** Push the current state to every YouTube tab (the sliders under the player) and mirror it on the toolbar badge. */
+async function broadcastState(): Promise<void> {
+  const state = await getPublicState();
+  chrome.action.setBadgeText({ text: state.active ? "ON" : "" }).catch(() => undefined);
+  const tabs = await chrome.tabs.query({ url: YOUTUBE_TAB_PATTERN });
+  for (const t of tabs) {
+    if (t.id != null) chrome.tabs.sendMessage(t.id, { type: "MIXPILOT_STATE", state }).catch(() => undefined);
+  }
+}
+
+function notifyTab(tabId: number | undefined, text: string): void {
+  if (tabId == null) return;
+  chrome.tabs.sendMessage(tabId, { type: "MIXPILOT_NOTICE", text }).catch(() => undefined);
+}
+
 // ---------------------------------------------------------------- lifecycle
 
-async function startCapture(): Promise<Response> {
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+/** `clicked` is the tab whose toolbar icon was clicked; without it, the active tab of the current window is used. */
+async function startCapture(clicked?: chrome.tabs.Tab): Promise<Response> {
+  const tab = clicked ?? (await chrome.tabs.query({ active: true, currentWindow: true }))[0];
   if (!tab?.id || !isSupportedYouTubeUrl(tab.url)) {
     return { ok: false, error: "Open a YouTube video in this tab, then enable MixPilot.", state: await getPublicState() };
   }
@@ -94,7 +113,7 @@ async function startCapture(): Promise<Response> {
   const prefs = await getPreferences();
   let streamId: string;
   try {
-    // Valid because the popup (an explicit user action on the extension) initiated this request.
+    // Valid because the user explicitly invoked the extension on this tab (toolbar click) and so granted activeTab.
     streamId = await chrome.tabCapture.getMediaStreamId({ targetTabId: tab.id });
   } catch (e) {
     await closeOffscreen();
@@ -175,6 +194,26 @@ function errorText(e: unknown): string {
 
 // ---------------------------------------------------------------- events (registered synchronously at top level)
 
+// With no popup, clicking the toolbar icon toggles processing on the current tab. This click is also what
+// grants Chrome's activeTab permission, which tab capture requires. The grant lasts for the tab's lifetime
+// on the page, so it keeps working across YouTube's in-page video navigation.
+chrome.action.onClicked.addListener((tab) => {
+  serial(async () => {
+    const session = await getSession();
+    const res = session.active && session.activeTabId === tab.id ? await stopCapture() : await startCapture(tab);
+    if (!res.ok) {
+      notifyTab(tab.id, res.error);
+      chrome.action.setBadgeText({ text: "!" }).catch(() => undefined);
+      setTimeout(() => void broadcastState().catch(() => undefined), 3000);
+    }
+  }).catch(() => undefined);
+});
+
+// Any state change (capture started/stopped, slider values) is mirrored to the sliders on YouTube tabs.
+chrome.storage.onChanged.addListener((_changes, area) => {
+  if (area === "session" || area === "local") broadcastState().catch(() => undefined);
+});
+
 chrome.runtime.onMessage.addListener((raw, sender, sendResponse) => {
   if (sender.id !== chrome.runtime.id) return false;
   const msg = raw as PopupRequest | OffscreenEvent | OffscreenRequest;
@@ -191,7 +230,7 @@ chrome.runtime.onMessage.addListener((raw, sender, sendResponse) => {
       work = getPublicState().then((state) => ({ ok: true, state }));
       break;
     case "START_CAPTURE":
-      work = serial(startCapture);
+      work = serial(() => startCapture());
       break;
     case "STOP_CAPTURE":
       work = serial(stopCapture);

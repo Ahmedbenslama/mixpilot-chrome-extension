@@ -1,0 +1,3 @@
+static/popup.html
+static/popup.css
+src/popup/popup.ts
