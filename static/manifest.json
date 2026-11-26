@@ -12,7 +12,8 @@
     "storage"
   ],
   "host_permissions": [
-    "https://*.youtube.com/*"
+    "https://*.youtube.com/*",
+    "https://api.audd.io/*"
   ],
   "background": {
     "service_worker": "service-worker.js",

@@ -14,6 +14,8 @@ import {
   type PopupRequest,
   type Preferences,
   type PublicState,
+  type RecognitionHistoryEntry,
+  type RecognitionResult,
   type Response,
   type SessionState,
 } from "../shared/messages";
@@ -173,6 +175,21 @@ async function setMix(mix: MixUpdate | undefined): Promise<Response> {
   return { ok: true, state: await getPublicState() };
 }
 
+async function setRuntimeMix(mix: MixUpdate | undefined): Promise<Response> {
+  if (!mix || typeof mix !== "object") return { ok: false, error: "Invalid runtime mix update." };
+  const next: MixUpdate = {};
+  const fields: [keyof MixUpdate, number][] = [["speechGain", STEM_GAIN_MAX], ["musicGain", STEM_GAIN_MAX], ["masterGain", MASTER_GAIN_MAX]];
+  for (const [key, max] of fields) {
+    if (mix[key] === undefined) continue;
+    const value = clampGain(mix[key], max);
+    if (value === null) return { ok: false, error: "Volume values must be numbers." };
+    next[key] = value;
+  }
+  if (!(await getSession()).active) return { ok: true, state: await getPublicState(), message: "Profile will apply when audio is enabled." };
+  const result = await toOffscreen({ type: "OFFSCREEN_SET_MIX", mix: next });
+  return result.ok ? { ok: true, state: await getPublicState() } : { ok: false, error: result.error, state: await getPublicState() };
+}
+
 async function setBypass(on: boolean): Promise<Response> {
   const session = await getSession();
   if (!session.active) return { ok: false, error: "MixPilot is not active.", state: await getPublicState() };
@@ -186,6 +203,24 @@ async function getEngineStats(): Promise<Response<EngineSnapshot | null>> {
   if (!(await getSession()).active) return { ok: true, state: null };
   const res = await toOffscreen({ type: "OFFSCREEN_GET_STATS" });
   return res.ok ? { ok: true, state: res.stats ?? null } : { ok: false, error: res.error };
+}
+
+async function identifyMusic(tabId: number, videoUrl: string, timestamp: number): Promise<Response<RecognitionResult>> {
+  const session = await getSession();
+  if (!session.active || session.activeTabId !== tabId) return { ok: false, error: "Enable MixPilot on this YouTube tab before identifying music." };
+  if (!isSupportedYouTubeUrl(videoUrl) || !Number.isFinite(timestamp) || timestamp < 0) return { ok: false, error: "Invalid YouTube video or playback timestamp." };
+  const { auddToken } = await chrome.storage.local.get("auddToken") as { auddToken?: string };
+  if (!auddToken?.trim()) return { ok: false, error: "Add your AudD API token in MixPilot settings first." };
+  const response = await toOffscreen({ type: "OFFSCREEN_IDENTIFY_MUSIC", token: auddToken });
+  if (!response.ok || !response.result) return { ok: false, error: response.ok ? "AudD returned no track result." : response.error };
+  const result = response.result;
+  const stored = await chrome.storage.local.get("recognitionHistory") as { recognitionHistory?: RecognitionHistoryEntry[] };
+  const entries = Array.isArray(stored.recognitionHistory) ? stored.recognitionHistory : [];
+  const entry: RecognitionHistoryEntry = {
+    ...result, id: crypto.randomUUID(), videoUrl, timestamp: Math.floor(timestamp), createdAt: Date.now(),
+  };
+  await chrome.storage.local.set({ recognitionHistory: [entry, ...entries].slice(0, 100) });
+  return { ok: true, state: result, message: "Track identified and saved locally." };
 }
 
 function errorText(e: unknown): string {
@@ -238,8 +273,31 @@ chrome.runtime.onMessage.addListener((raw, sender, sendResponse) => {
     case "GET_ENGINE_STATS":
       work = getEngineStats();
       break;
+    case "IDENTIFY_MUSIC": {
+      const request = msg as Extract<PopupRequest, { type: "IDENTIFY_MUSIC" }>;
+      if (!sender.tab?.id) work = Promise.resolve({ ok: false, error: "Music identification must be requested from a YouTube tab." });
+      else work = identifyMusic(sender.tab.id, sender.tab.url ?? request.videoUrl, request.timestamp);
+      break;
+    }
+    case "GET_RECOGNITION_HISTORY":
+      work = chrome.storage.local.get("recognitionHistory").then((stored) => ({ ok: true, state: Array.isArray(stored.recognitionHistory) ? stored.recognitionHistory as RecognitionHistoryEntry[] : [] }));
+      break;
+    case "DELETE_RECOGNITION_HISTORY": {
+      const request = msg as Extract<PopupRequest, { type: "DELETE_RECOGNITION_HISTORY" }>;
+      work = request.id
+        ? chrome.storage.local.get("recognitionHistory").then(async (stored) => {
+          const entries = (Array.isArray(stored.recognitionHistory) ? stored.recognitionHistory as RecognitionHistoryEntry[] : []).filter(entry => entry.id !== request.id);
+          await chrome.storage.local.set({ recognitionHistory: entries });
+          return { ok: true, state: entries };
+        })
+        : chrome.storage.local.remove("recognitionHistory").then(() => ({ ok: true, state: [] }));
+      break;
+    }
     case "SET_MIX":
       work = setMix((msg as Extract<PopupRequest, { type: "SET_MIX" }>).mix);
+      break;
+    case "SET_RUNTIME_MIX":
+      work = setRuntimeMix((msg as Extract<PopupRequest, { type: "SET_RUNTIME_MIX" }>).mix);
       break;
     case "SET_BYPASS":
       work = setBypass((msg as Extract<PopupRequest, { type: "SET_BYPASS" }>).on);

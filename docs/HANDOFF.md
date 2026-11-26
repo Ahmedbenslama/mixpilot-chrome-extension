@@ -1,5 +1,7 @@
 # MixPilot — Session Handoff
 
+> **Update 2026-11-26:** Phases C–E have since received implementation work on the active branch. The mixer UI now includes two stem channels/meters, mute/restore, presets, master, A/B, reset, status and profiles; AudD consented recognition, a token setup, eight-second music-stem recording, and local timestamped history are implemented. These additions pass typecheck/unit/build, but live Chrome UI QA, human listening, real AudD tests, long-session testing and release audits are still outstanding. See `docs/DEVELOPMENT_PLAN.md`, `docs/RECOGNITION.md` and `docs/STORE_READINESS.md` for current truth. The dated notes below describe the earlier handoff and are retained for architecture context.
+
 **Written:** 2026-11-23, at the end of the session that completed **Phase A** and **Phase B**.
 **Audience:** the next coding agent.
 **Read first:** `CLAUDE.md`, `CLAUDE_PROMPT.md` (the main spec), then this file, `docs/DEVELOPMENT_PLAN.md` and `docs/MODEL_BENCHMARK.md`.
@@ -21,15 +23,15 @@ MixPilot is a Chrome MV3 extension for YouTube: two independent stems (**Speech*
 - **Progress updates at major milestones:** architectural decisions, technical limitations, test results.
 - **Commits:** local, one per phase, authored by the user only. **Do not add `Co-Authored-By` or any AI attribution lines** to commits or PRs (explicit user instruction).
 
-## 2. Current state: v0.3.0
+## 2. Current state: v0.4.0 implementation
 
 | Phase | Status |
 |---|---|
-| A — audit, baseline fixes, model research/benchmark | ✅ Done (commits `c11b107`, `d3685b3`) |
-| B — live separation engine | ✅ Done and verified by automated + objective tests (commit `41d2529`). **Human listening test still pending**, so separation is not "complete". |
-| C — designed mixer UI | ⏭️ **Next.** The current popup is a functional interim UI. |
-| D — music recognition (provider adapter, consent, history) | Not started |
-| E — profiles, timeline, store readiness, audits | Not started |
+| A — audit, baseline fixes, model research/benchmark | ✅ Done (see repository history) |
+| B — live separation engine | ✅ Automated/objective validation complete. **Human listening test pending**, so separation is not declared complete. |
+| C — designed mixer UI | ✅ Implemented in YouTube content panel; manual accessibility/responsive/audio QA and screenshots pending. |
+| D — music recognition | ✅ AudD adapter, per-request consent, music-stem recorder, local history/seek/delete implemented. Real provider test and provider terms comparison pending. |
+| E — profiles and store readiness | 🟡 Video/channel/global precedence, SPA reapply, policy draft and audit checklist implemented; long-session, full license/store and legal review pending. |
 
 **Works today:**
 1. Enable on a YouTube tab.
@@ -132,7 +134,7 @@ offscreen document: tabCapture getUserMedia → AudioContext(48 kHz) → MixEngi
 
 ```powershell
 npm install
-npm run check                 # tsc + 45 vitest unit tests + build to dist/
+npm run check                 # tsc + Vitest unit tests + build to dist/
 npm run test:e2e              # lifecycle E2E (14 checks), throwaway Chrome profile, needs youtube.com
 npm run test:e2e:separation   # live separation E2E (11 checks): timing, stability, CPU, levels, overload recovery
 npm run bench:harness         # live-vs-offline SI-SDR; needs bench data (bench/README.md)
@@ -156,46 +158,31 @@ Load in Chrome: `chrome://extensions` → Developer mode → Load unpacked → *
 | `src/audio/ring.ts` | Absolute-index float ring with wrapping 32-bit indices |
 | `src/audio/limiter.ts`, `*.worklet.ts` | Lookahead limiter + worklet adapters |
 | `src/shared/*` | Message types, gain math, level metering, URL check, serial queue, session reconciliation |
-| `src/popup/popup.ts`, `static/popup.*` | **Interim** UI: enable/disable, Speech/Music/Master sliders, A/B, status line |
+| `src/content/panel.ts` | YouTube-native mixer UI, presets, meters, profiles, consent dialog and recognition history |
+| `src/recognition/provider.ts` | Provider adapter interface and AudD multipart API implementation |
+| `src/shared/profiles.ts` | Video/channel profile keys and precedence resolver |
+| `src/popup/popup.ts`, `static/popup.*` | Legacy standalone test page; toolbar action is the in-player YouTube UI |
 | `static/manifest.json` | Permissions: activeTab, tabCapture, offscreen, storage + host `https://*.youtube.com/*`; CSP with wasm-unsafe-eval |
 | `scripts/build.mjs` | esbuild bundles + copies static, the ORT wasm and the model into `dist/` |
-| `tests/unit/*` | 45 tests (limiter, pipeline with an oracle model through the real transport, shared logic) |
+| `tests/unit/*` | 49 tests (limiter, pipeline/oracle transport, shared logic, profile precedence and recognition response parsing) |
 | `tests/e2e/*` | CDP-driven Chrome tests + harness helpers |
 | `bench/*` | Benchmark, export, ground-truth harness |
 | `docs/MODEL_BENCHMARK.md` | All model and engine measurements |
 | `docs/DEVELOPMENT_PLAN.md` | Audit, bug list, phases |
 | `tests/MANUAL_QA.md` | Human listening/QA checklists |
 
-## 8. Next steps
+## 8. Current follow-ups
 
-### Phase C: mixer UI (next)
-Build to `CLAUDE_PROMPT.md` §6:
-- **Look:** premium dark; charcoal plus one mint accent.
-- **Channels:** Speech and Music as equal channels, each with an icon, slider, numeric value, mute with restore, and a level meter. The engine already exposes `levels.speechDb` / `musicDb` / `outputDb` via `GET_ENGINE_STATS`.
-- **Master** below the two channels.
-- **Presets:** Balanced / Dialogue / Music / Lecture / Custom.
-- **A/B, Reset** controls.
-- **Status states:** Inactive, Starting, Loading model, Ready (Separating), Fallback/Too slow, Recognition in progress, Error. Map them from the engine's `status` values: `loading | priming | running | overloaded | unavailable | error`.
-- **First-run explanation; accessibility:** labels, keyboard, focus states, contrast.
-- **No heavy animations.**
-- **Optional:** a latency setting (`Preferences.latency` exists but has no UI yet; it only takes effect at the next start).
-- **Required in the copy:** "Music" = everything except speech. Mute must be exactly 0, with the previous value restorable.
-- **Design skills available:** `frontend-design`, `impeccable`.
+Implementation summaries are in the current plan and provider notes. Next work should be validation and release hardening, not re-building the phase deliverables:
 
-### Phase D: recognition
-- **Providers:** research AudD vs ACRCloud (pricing, terms, formats, privacy). No unofficial Shazam endpoint.
-- **Interface:** a provider adapter.
-- **Consent:** an explicit consent sheet that shows what is sent and to whom.
-- **Audio source:** a short excerpt from the **music stem**. That needs a tap; the engine's `musicGain` node, or pre-gain worklet output 1.
-- **History:** store the video URL and playback timestamp (needs a YouTube content script or `chrome.scripting`; the host permission already exists) in local history, with seek-back.
-- **Secrets:** never hardcode keys. Prefer a proxy, or a clearly labelled user-managed key flow.
-- **No credentials configured:** show a real setup state.
+1. Run the manual Phase C checklist in `tests/MANUAL_QA.md`; verify keyboard/focus behavior, responsive panel placement and real meter readings in Chrome. Capture UI screenshots once the extension can be exercised in a supported browser.
+2. Complete the human separation listening tests. Do not mark separation complete without them.
+3. Test AudD with an authorized token and real browser audio; validate its WebM/Opus support, errors, billing/limits, privacy, terms and commercial use. Compare against ACRCloud from current official documentation before picking a release provider. See `docs/RECOGNITION.md`.
+4. Manually verify profile precedence across YouTube SPA navigation, reloads, channel identification and deletion/reset. Profiles use `chrome.storage.local`.
+5. Run lifecycle/separation E2E and a 30-minute session in supported Chrome. Browser playback tests cannot be inferred from unit tests.
+6. Complete the license/dependency/permission/CSP/store review; add a project license only after the owner decides one. `docs/STORE_READINESS.md` tracks blockers.
 
-### Phase E
-- **Profiles:** video > channel > global.
-- **Robustness:** SPA navigation and long-session tests.
-- **Audits:** permissions, CSP, remote code and license audit.
-- **Store readiness:** privacy policy draft and README screenshots.
+Known performance/model limitations remain in §9.
 
 ## 9. Known limitations and open items
 
@@ -206,4 +193,4 @@ Build to `CLAUDE_PROMPT.md` §6:
 - **One unexplained E2E anomaly** in the lifecycle test: `speechGain` changed with no matching request. It didn't reproduce in 2 instrumented runs; the likely cause was a stale Chrome on the same debug port, which the harness now guards against. Set `E2E_DEBUG_STORAGE=1` to log storage writes.
 - **Package size:** `dist/` is about 31 MB (model 16 MB + WASM 15 MB). An optional optimisation: move the STFT out of the graph (the matmul FFT matrices are about 7.4 MB).
 - **Repo size:** `models/dfn3_stream.onnx` is committed (16 MB, allowed by its license). Don't add more weights without checking license and size.
-- **Not yet in the repo:** a LICENSE file and a privacy policy (Phase E).
+- **Still not in the repo:** a root `LICENSE` (owner decision required). A non-final privacy policy draft is at `docs/PRIVACY_POLICY_DRAFT.md`; legal and provider review remain outstanding.
