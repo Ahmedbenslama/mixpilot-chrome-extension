@@ -1,8 +1,10 @@
 # Source-separation model benchmark
 
-**Date:** 2026-11-23 · **Machine:** Intel i7-13620H (10C/16T), RTX 4050 Laptop, 16 GB RAM, Windows 11, Chrome 158 · **Runtime:** onnxruntime-web 1.31.1
+**Original benchmark:** 2026-11-23 · **Machine:** Intel i7-13620H (10C/16T), RTX 4050 Laptop, 16 GB RAM, Windows 11, Chrome 158 · **Runtime:** onnxruntime-web 1.31.1
 
-Reproduce the results with the scripts in `bench/` (see `bench/README.md`). Model weights, audio and outputs are git-ignored.
+**Current latency note (2026-11-26):** the original Chrome measurements below used a 70 ms processing configuration. The default was subsequently raised to **149.5 ms** to support a lookahead residual-music speech gate when Speech gain is exactly 0. That gate ducks Music during detected dialogue. It has unit-test coverage, but the new end-to-end delay, gate behavior, real-device lip sync and audible leakage have not yet been measured in Chrome.
+
+Reproduce the original results with the scripts in `bench/` (see `bench/README.md`). Model weights, audio and outputs are git-ignored.
 
 ## Decision
 

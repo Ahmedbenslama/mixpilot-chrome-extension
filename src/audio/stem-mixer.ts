@@ -19,6 +19,10 @@
  */
 import type { FloatRing } from "./ring";
 
+const SPEECH_GATE_WINDOW_MS = 20;
+const SPEECH_GATE_SAFETY_MS = 12; // keep detector samples behind the worker's live write head
+const SPEECH_GATE_THRESHOLD_RMS = 0.002; // −54 dBFS speech-estimate activity threshold
+
 export const enum SeparationState {
   Off = 0, // separation disabled or model not ready
   Priming = 1, // waiting for the first model output to reach the read point
@@ -70,6 +74,10 @@ export class StemMixer {
   private readonly wStep: number;
   private enabled = false;
   private ready = false;
+  private speechMuted = false;
+  private musicDuck = 1;
+  private readonly musicDuckAttackStep: number;
+  private readonly musicDuckReleaseStep: number;
   private state: SeparationState = SeparationState.Off;
   private mid: Float32Array;
   // governor
@@ -87,6 +95,8 @@ export class StemMixer {
     this.delayL = new Float32Array(Math.max(1, this.latencySamples));
     this.delayR = new Float32Array(Math.max(1, this.latencySamples));
     this.wStep = 1 / Math.max(1, Math.round(((o.crossfadeMs ?? 10) / 1000) * o.sampleRate));
+    this.musicDuckAttackStep = 1 / Math.max(1, Math.round(0.008 * o.sampleRate));
+    this.musicDuckReleaseStep = 1 / Math.max(1, Math.round(0.04 * o.sampleRate));
     this.mid = new Float32Array(128);
     this.windowLen = Math.round(0.5 * o.sampleRate);
     this.overloadThreshold = o.overloadThreshold ?? 0.002;
@@ -95,6 +105,8 @@ export class StemMixer {
 
   setEnabled(on: boolean): void { this.enabled = on; }
   setReady(on: boolean): void { this.ready = on; }
+  /** At exact Speech mute, duck residual Music when the speech estimate predicts nearby dialogue. */
+  setSpeechMuted(on: boolean): void { this.speechMuted = on; }
   getState(): SeparationState { return this.state; }
   getWeight(): number { return this.w; }
 
@@ -114,6 +126,21 @@ export class StemMixer {
     const [oL, oR] = out.original;
     const [fL, fR] = out.fallback;
     let late = 0;
+    let duckTarget = 1;
+    if (this.speechMuted && this.enabled && this.ready) {
+      const gateWindow = Math.max(1, Math.round((SPEECH_GATE_WINDOW_MS / 1000) * this.o.sampleRate));
+      const safety = Math.round((SPEECH_GATE_SAFETY_MS / 1000) * this.o.sampleRate);
+      const lookahead = Math.max(0, this.A - gateWindow - safety);
+      const detectAt = (this.n - this.A + lookahead) | 0;
+      if (outRing.has(detectAt) && outRing.has((detectAt + gateWindow - 1) | 0)) {
+        let energy = 0;
+        for (let j = 0; j < gateWindow; j++) {
+          const sample = outRing.at((detectAt + j) | 0);
+          energy += sample * sample;
+        }
+        if (Math.sqrt(energy / gateWindow) >= SPEECH_GATE_THRESHOLD_RMS) duckTarget = 0;
+      }
+    }
 
     for (let i = 0; i < frames; i++, this.n = (this.n + 1) | 0) {
       // 2. latency-matched original
@@ -151,8 +178,11 @@ export class StemMixer {
 
       sL![i] = w * s;
       sR![i] = w * s;
-      mL![i] = w * (origL - s);
-      mR![i] = w * (origR - s);
+      const duckStep = duckTarget < this.musicDuck ? this.musicDuckAttackStep : this.musicDuckReleaseStep;
+      if (this.musicDuck < duckTarget) this.musicDuck = Math.min(duckTarget, this.musicDuck + duckStep);
+      else if (this.musicDuck > duckTarget) this.musicDuck = Math.max(duckTarget, this.musicDuck - duckStep);
+      mL![i] = w * (origL - s) * this.musicDuck;
+      mR![i] = w * (origR - s) * this.musicDuck;
       oL![i] = origL;
       oR![i] = origR;
       fL![i] = (1 - w) * origL;

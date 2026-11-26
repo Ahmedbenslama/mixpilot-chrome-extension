@@ -5,8 +5,9 @@
 MixPilot is a Chrome extension for taking control of speech and background sound in YouTube videos.
 
 > **Current status (v0.4.0):**
-> - **Current UI:** deliberately minimal monochrome panel with bold Speech, Music/other and Master sliders plus one Restore button. Capture starts/stops from the browser toolbar icon.
-> - **Audio model:** DeepFilterNet3 remains in use. Speech at 0% mutes the estimated Speech output, but speech can still leak into the residual Music stem. See [`docs/MODEL_REVIEW_2026-11.md`](./docs/MODEL_REVIEW_2026-11.md); no replacement has yet passed real-music and Chrome validation.
+> - **Current UI:** deliberately minimal monochrome panel with bold Speech, Music/other and Master sliders, round handles, no frame/brand mark, and one Restore button. Capture starts/stops from the browser toolbar icon.
+> - **Audio:** default processing delay is 149.5 ms (below the requested 150 ms ceiling). With Speech at exactly 0%, a lookahead speech-activity gate suppresses the residual Music output around detected dialogue; this may briefly duck the background music.
+> - **Model:** DeepFilterNet3 remains in use. No replacement has passed real-music and Chrome validation; see [`docs/MODEL_REVIEW_2026-11.md`](./docs/MODEL_REVIEW_2026-11.md). The speech gate is suppression, not a guarantee of perfect separation.
 > - **Not verified:** human listening/UI QA and long-session tests. Separation is **not marked complete** until listening tests are reviewed.
 > - **Advanced features:** recognition and profiles are not exposed in the current minimal panel.
 > - **Not store-ready:** full provider/model/license evaluation, privacy review and screenshots remain pending.
@@ -41,7 +42,7 @@ npm run build        # outputs the loadable extension to dist/
 
 Audio is processed locally and played back through the same tab's output.
 
-- **Delay:** processing adds about 70 ms, below the point where most people notice audio lagging behind the picture (about 125 ms).
+- **Delay:** default processing adds about 149.5 ms (under the requested 150 ms maximum). This can be noticeable against video and requires real-device lip-sync validation; browser audio output adds its own latency.
 - **Startup:** about one second after enabling, the model is running and the Speech and Music sliders act on separated stems.
 - **Bundled model:** `models/dfn3_stream.onnx` (16 MB, MIT/Apache-2.0); see `models/MODEL_CARD.md`.
 

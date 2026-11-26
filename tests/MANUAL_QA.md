@@ -19,19 +19,20 @@ Automated coverage: `npm run check` runs typecheck, unit tests and build. Chrome
 
 **Setup:** Load `dist/`, enable on a video and wait for **Separating** (about 1 s). Record date, URL, timestamp and observations.
 
-- [ ] Speech 0%, Music 100%: voices disappear or almost disappear; note residue, warbling and musical-noise artifacts.
+- [ ] Speech 0%, Music 100%: residual Music is ducked around detected speech using the 149.5 ms processing path; listen for any remaining voice/echo, missed soft speech, and soundtrack pumping. The gate may lower music while dialogue is detected.
 - [ ] Speech 100%, Music 0%: mostly clean dialogue; note music bleed, choppy words or robotic tone.
 - [ ] Speech 150%, Music 30%: dialogue is easier to follow than the original.
 - [ ] Both at 100%: sounds like the original. Toggle A/B; no jump in time or level.
-- [ ] Sliders are smooth; lip sync is acceptable (about 70 ms processing delay).
+- [ ] Sliders are smooth; test lip sync at the default reported 149.5 ms processing delay and compare with passthrough; document whether that is acceptable on this device.
 - [ ] Test dialogue with quiet/loud music, music-only, speech-only, sung vocals under dialogue, overlapping speakers, bass/percussion, noise/reverb, and effects.
 - [ ] Long session (≥ 30 min): memory, CPU and latency stay stable.
 - [ ] Record intelligibility, music artifacts, CPU/memory, latency and underruns. Do not mark separation complete until these human results are reviewed.
 
 ## Phase C: minimalist mixer UI
 
-- [ ] Panel uses monochrome black/white/gray only: no colored accents, icons, meters, cards or decorative animation.
-- [ ] Three bold, high-contrast sliders (Speech, Music/other, Master) are visible and keyboard operable; values update correctly.
+- [ ] Panel uses monochrome black/white/gray only: no colored accents, icons, meters, cards or decorative animation; no border frame or extension name.
+- [ ] Three bold, high-contrast sliders with circular handles (Speech, Music/other, Master) are visible and keyboard operable; values update correctly.
+- [ ] Running status reports no more than 150 ms processing delay; inspect lip-sync and compare against the original.
 - [ ] Restore returns all slider values to 100% and leaves the player on the processed balanced mix.
 - [ ] Inactive status clearly tells the user to click the MixPilot toolbar icon; clicking the page panel cannot grant `activeTab`.
 - [ ] Clicking the toolbar icon on a YouTube watch page enables capture; clicking it again disables capture.

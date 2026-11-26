@@ -13,17 +13,17 @@ const LABELS: Record<GainKey, string> = {
 };
 const CSS = `
 :host{display:block;margin:10px 0;color:#fff;font:14px/1.4 Arial,Helvetica,sans-serif;color-scheme:dark}
-*{box-sizing:border-box}.panel{background:#080808;color:#fff;border:1px solid #fff;padding:14px 18px;max-width:100%;user-select:none}
-.top,.row-head{display:flex;align-items:center;justify-content:space-between;gap:16px}.top{margin-bottom:12px}.title{font-size:14px;font-weight:700;letter-spacing:.04em}.status,.notice{font-size:12px;color:#fff}.status{white-space:nowrap;text-align:right}.notice{min-height:0;margin-top:8px}.notice:empty{display:none}
+*{box-sizing:border-box}.panel{background:transparent;color:#fff;border:0;padding:0;max-width:100%;user-select:none}
+.top,.row-head{display:flex;align-items:center;justify-content:space-between;gap:16px}.top{margin-bottom:10px}.status,.notice{font-size:12px;color:#fff}.status{white-space:nowrap;text-align:left}.notice{min-height:0;margin-top:8px}.notice:empty{display:none}
 .controls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}.control{min-width:0}.row-head{margin-bottom:10px;font-weight:700}.label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.value{font-variant-numeric:tabular-nums;font-weight:700;white-space:nowrap}
-input[type=range]{display:block;width:100%;height:12px;margin:7px 0 4px;padding:0;appearance:none;background:linear-gradient(to right,#fff 0%,#fff var(--fill,50%),#555 var(--fill,50%),#555 100%);border:0;border-radius:0;cursor:pointer}
+input[type=range]{display:block;width:100%;height:14px;margin:7px 0 4px;padding:0;appearance:none;background:linear-gradient(to right,#fff 0%,#fff var(--fill,50%),#666 var(--fill,50%),#666 100%);border:0;border-radius:7px;cursor:pointer}
 input[type=range]:focus-visible,button:focus-visible{outline:3px solid #fff;outline-offset:4px}
-input[type=range]::-webkit-slider-thumb{appearance:none;width:24px;height:24px;border:3px solid #080808;border-radius:0;background:#fff;box-shadow:0 0 0 2px #fff}
-input[type=range]::-moz-range-thumb{width:18px;height:18px;border:3px solid #080808;border-radius:0;background:#fff;box-shadow:0 0 0 2px #fff}
-.actions{display:flex;justify-content:flex-end;margin-top:14px;padding-top:11px;border-top:1px solid #fff}
-button{background:transparent;color:#fff;border:2px solid #fff;border-radius:0;padding:7px 13px;font:700 12px Arial,Helvetica,sans-serif;cursor:pointer}
-button:hover{background:#fff;color:#080808}
-@media(max-width:640px){.panel{padding:12px}.controls{grid-template-columns:1fr;gap:12px}.top{align-items:flex-start;flex-direction:column;gap:4px}.status{text-align:left}}
+input[type=range]::-webkit-slider-thumb{appearance:none;width:24px;height:24px;border:3px solid #fff;border-radius:50%;background:#fff;box-shadow:0 0 0 2px #111}
+input[type=range]::-moz-range-thumb{width:20px;height:20px;border:3px solid #fff;border-radius:50%;background:#fff;box-shadow:0 0 0 2px #111}
+.actions{display:flex;justify-content:flex-end;margin-top:12px}
+button{background:transparent;color:#fff;border:1px solid #fff;border-radius:2px;padding:6px 12px;font:700 12px Arial,Helvetica,sans-serif;cursor:pointer}
+button:hover{background:#fff;color:#000}
+@media(max-width:640px){.controls{grid-template-columns:1fr;gap:12px}.top{align-items:flex-start;flex-direction:column;gap:4px}.status{text-align:left}}
 `;
 
 let state: PublicState | null = null;
@@ -100,12 +100,10 @@ function buildPanel(): HTMLElement {
   panel.setAttribute("aria-label", "MixPilot audio sliders");
 
   const top = element("header", "top");
-  const title = element("div", "title");
-  title.textContent = "MIXPILOT";
   statusEl = element("div", "status");
   statusEl.setAttribute("role", "status");
   statusEl.setAttribute("aria-live", "polite");
-  top.append(title, statusEl);
+  top.append(statusEl);
 
   const controls = element("div", "controls");
   for (const key of KEYS) {

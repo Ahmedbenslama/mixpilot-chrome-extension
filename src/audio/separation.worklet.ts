@@ -44,6 +44,7 @@ class SeparationProcessor extends AudioWorkletProcessor {
         this.link.onmessage = (ev: MessageEvent<HopReturn>) => this.sender.receive(ev.data);
       } else if (m.type === "enabled") this.mixer.setEnabled(m.on);
       else if (m.type === "ready") this.mixer.setReady(m.on);
+      else if (m.type === "speechMuted") this.mixer.setSpeechMuted(m.on);
     };
   }
 

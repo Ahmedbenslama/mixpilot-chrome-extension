@@ -32,7 +32,8 @@ export type WorkerOutbound =
 export type WorkletInbound =
   | { type: "connect"; port: MessagePort } // direct channel to the worker
   | { type: "enabled"; on: boolean }
-  | { type: "ready"; on: boolean };
+  | { type: "ready"; on: boolean }
+  | { type: "speechMuted"; on: boolean };
 
 /** separation worklet -> main (over node.port), ~5 times per second */
 export interface WorkletStats {
@@ -50,7 +51,7 @@ export interface SeparationWorkletOptions {
 /** Latency presets: extra buffering on top of the model's 30 ms, trading lip-sync for robustness. */
 export const LATENCY_PRESETS = {
   low: 960, // +20 ms  -> 50 ms total processing delay
-  balanced: 1920, // +40 ms -> 70 ms
-  safe: 3840, // +80 ms -> 110 ms
+  balanced: 5664, // +118 ms -> 149.5 ms including 30 ms model delay and limiter lookahead
+  safe: 5664, // hard limit: keep total processing delay below 150 ms
 } as const;
 export type LatencyPreset = keyof typeof LATENCY_PRESETS;

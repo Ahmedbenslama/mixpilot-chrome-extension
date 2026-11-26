@@ -1,6 +1,6 @@
 # MixPilot — Session Handoff
 
-> **Update 2026-11-26:** The current content-panel UI has been simplified to monochrome Speech/Music/Master sliders and one Restore button. The toolbar icon is the only capture-start gesture. DFN3 remains the shipped model; `docs/MODEL_REVIEW_2026-11.md` records a promising UL-UNAS smoke test and why no unvalidated replacement was shipped. Recognition/profile backend work from the previous iteration remains in code but is not exposed/applied by this minimal panel. Typecheck, unit tests and build pass; live Chrome UI QA, real-music model tests, human listening, and E2E remain outstanding. The dated notes below describe earlier UI state and are retained for architecture context.
+> **Update 2026-11-26:** The current panel is monochrome, borderless, has no extension name, and shows bold Speech/Music/Master sliders with round handles plus Restore. Toolbar icon is the only capture-start gesture. DFN3 remains the model; when Speech gain is exactly 0, a speech-activity lookahead gate ducks residual Music around detected speech, with a reported 149.5 ms processing delay (below the requested 150 ms cap). This may duck soundtrack and does not guarantee perfect separation. Recognition/profile backend work remains in code but is not exposed/applied by the minimal panel. Typecheck/unit/build pass; new default latency, gate behavior, live Chrome UI QA, real-music model tests, human listening and E2E remain unvalidated. The dated notes below describe earlier UI state and are retained for architecture context.
 
 **Written:** 2026-11-23, at the end of the session that completed **Phase A** and **Phase B**.
 **Audience:** the next coding agent.
@@ -66,7 +66,7 @@ offscreen document: tabCapture getUserMedia → AudioContext(48 kHz) → MixEngi
   - Speech = model output.
   - Music = latency-matched original − speech, so the stems are sample-aligned and **sum exactly to the original**.
   - "Music" really means **everything except speech** (effects, noise, crowd). The UI must say so.
-- **Latency:** D = 1,440 (model) + jitter allowance. Presets in `src/engine/protocol.ts`: low 960, **balanced 1920 (default)**, safe 3840. Balanced adds about 71.5 ms total, including the 1.5 ms limiter lookahead.
+- **Latency:** D = 1,440 (model) + jitter allowance. Current presets in `src/engine/protocol.ts`: low 960, balanced/safe 5664. Current default total reported processing delay is 149.5 ms including the 1.5 ms limiter lookahead; this remains below the user's hard 150 ms ceiling. New end-to-end timing still requires Chrome validation.
 - **Transport:** the worklet and worker exchange 10 ms hops over a **direct MessageChannel**, using a fixed pool of 16 transferable buffers.
   - The audio thread doesn't allocate in steady state.
   - If every buffer is in flight, the worklet drops the hop instead of allocating.

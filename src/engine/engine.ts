@@ -143,6 +143,7 @@ export class MixEngine {
       processorOptions: opts,
     });
     this.nodes.push(this.sep);
+    this.sep.port.postMessage({ type: "speechMuted", on: this.settings.speechGain === 0 });
     source.connect(this.sep);
     this.sep.connect(this.speechGain, 0).connect(this.processed);
     this.sep.connect(this.musicGain, 1).connect(this.processed);
@@ -195,7 +196,10 @@ export class MixEngine {
 
   setMix(next: Partial<Omit<MixSettings, "bypass">>): void {
     this.settings = { ...this.settings, ...next };
-    if (next.speechGain !== undefined) ramp(this.ctx, this.speechGain.gain, next.speechGain);
+    if (next.speechGain !== undefined) {
+      ramp(this.ctx, this.speechGain.gain, next.speechGain);
+      this.sep?.port.postMessage({ type: "speechMuted", on: next.speechGain === 0 });
+    }
     if (next.musicGain !== undefined) ramp(this.ctx, this.musicGain.gain, next.musicGain);
     if (next.masterGain !== undefined) ramp(this.ctx, this.master.gain, next.masterGain);
   }

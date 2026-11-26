@@ -142,6 +142,23 @@ describe("StemMixer + HopSender/HopQueue (oracle model, message transport)", () 
     expect(p.sender.allocated).toBe(16); // buffer pool never had to grow: no audio-thread allocation
   });
 
+  it("ducks the residual Music stem to silence around detected speech when Speech is muted", async () => {
+    const n = SR * 2;
+    const p = makePipeline(n, 5664);
+    p.mixer.setEnabled(true);
+    p.mixer.setReady(true);
+    p.mixer.setSpeechMuted(true);
+    await p.run(() => 2);
+    let sumSq = 0;
+    let count = 0;
+    for (let t = Math.round(1.2 * SR); t < Math.round(1.8 * SR); t++) {
+      sumSq += p.outs.music[0]![t]! ** 2;
+      count++;
+    }
+    expect(Math.sqrt(sumSq / count)).toBeLessThan(0.001);
+    expect(p.mixer.latencySamples).toBe(1440 + 5664);
+  });
+
   it("at unity gains, speech + music + fallback always equals the latency-matched original (any w)", async () => {
     const n = SR;
     const p = makePipeline(n, 960, 5);
