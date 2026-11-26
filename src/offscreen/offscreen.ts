@@ -96,6 +96,13 @@ chrome.runtime.onMessage.addListener((raw, _sender, sendResponse) => {
     case "OFFSCREEN_GET_STATS":
       sendResponse(session ? { ok: true, stats: session.engine.snapshot() } : inactive);
       return false;
+    case "OFFSCREEN_IDENTIFY_MUSIC":
+      if (!session) { sendResponse(inactive); return false; }
+      session.engine.identifyMusic(msg.token).then(
+        (result) => sendResponse({ ok: true, result }),
+        (error) => sendResponse({ ok: false, error: error instanceof Error ? error.message : String(error) }),
+      );
+      return true;
   }
   return false;
 });

@@ -13,6 +13,8 @@
  * Speech and Music gains act on separate model outputs, never on EQ bands.
  */
 import { blockLevelsDb } from "../shared/levels";
+import { AudDProvider } from "../recognition/provider";
+import type { RecognitionResult } from "../shared/messages";
 import { SeparationState, Stat } from "../audio/stem-mixer";
 import {
   DFN3, LATENCY_PRESETS, type LatencyPreset, type SeparationWorkletOptions, type WorkerOutbound, type WorkletStats,
@@ -251,6 +253,39 @@ export class MixEngine {
         outputPeakDb: out.peakDb,
       },
     };
+  }
+
+  /** Capture a single, user-requested eight-second excerpt from the isolated music stem and submit it to AudD. */
+  async identifyMusic(token: string): Promise<RecognitionResult> {
+    if (!token.trim()) throw new Error("Add an AudD API token in MixPilot settings first.");
+    if (this.snapshot().status !== "running") throw new Error("Wait until speech/music separation is ready before identifying a track.");
+    if (typeof MediaRecorder === "undefined") throw new Error("This browser does not support audio excerpt recording.");
+
+    const tap = this.ctx.createMediaStreamDestination();
+    if (!this.sep) throw new Error("The separated Music stem is unavailable.");
+    this.sep.connect(tap, 1);
+    const mimeType = ["audio/webm;codecs=opus", "audio/webm", "audio/ogg;codecs=opus"].find((type) => MediaRecorder.isTypeSupported(type));
+    if (!mimeType) { this.sep.disconnect(tap, 1); throw new Error("No supported audio recording format is available."); }
+    const recorder = new MediaRecorder(tap.stream, { mimeType, audioBitsPerSecond: 64000 });
+    const chunks: BlobPart[] = [];
+    try {
+      const recording = new Promise<Blob>((resolve, reject) => {
+        recorder.ondataavailable = (event) => { if (event.data.size) chunks.push(event.data); };
+        recorder.onerror = () => reject(new Error("Could not record the music excerpt."));
+        recorder.onstop = () => resolve(new Blob(chunks, { type: mimeType }));
+        recorder.start(500);
+        window.setTimeout(() => { if (recorder.state !== "inactive") recorder.stop(); }, 8000);
+      });
+      const clip = await recording;
+      if (clip.size < 2048) throw new Error("There was not enough music in the excerpt to identify.");
+      if (clip.size > 2_000_000) throw new Error("The excerpt was unexpectedly large; please try again.");
+      const result = await new AudDProvider().recognize(clip, token);
+      return { ...result, provider: "AudD" };
+    } finally {
+      if (recorder.state !== "inactive") recorder.stop();
+      tap.stream.getTracks().forEach((track) => track.stop());
+      this.sep.disconnect(tap, 1);
+    }
   }
 
   async stop(): Promise<void> {

@@ -2,14 +2,15 @@
 
 **Your video. Your mix.**
 
-MixPilot is a Chrome extension concept for taking control of the audio mix in YouTube videos. Its intended end state is real-time, independent control of speech and background music, optional soundtrack recognition, and per-video listening preferences.
+MixPilot is a Chrome extension for taking control of the audio mix in YouTube videos: local speech/music separation, independent stem gains, optional consent-gated music recognition, and mix profiles.
 
-> **Current status (v0.3.0, Phase B complete):**
-> - **Works today:** live on-device speech/music separation on YouTube, with independent Speech, Music and Master gains, a level-matched A/B, and automatic fallback to the original audio if the device can't keep up.
-> - **Verified:** automated tests and objective measurements in Chrome 158 (see [`docs/MODEL_BENCHMARK.md`](./docs/MODEL_BENCHMARK.md)).
-> - **Not verified:** listening tests haven't been done yet, so separation is **not yet marked complete**.
-> - **Interim UI:** the popup is a functional placeholder until Phase C.
-> - **Not yet:** song identification.
+> **Current status (v0.4.0):**
+> - **Works today:** on-device speech/music separation, independent Speech/Music/Master controls, mute/restore, presets, level meters, A/B, reset and automatic passthrough fallback.
+> - **Recognition:** optional AudD adapter captures an eight-second excerpt from the separated Music stem after explicit consent; requires your own token. Matches and timestamps are stored locally. Real provider verification remains pending.
+> - **Profiles:** global, channel and video scopes with video > channel > global precedence.
+> - **Verified:** existing engine measurements and automated unit/build checks (see [`docs/MODEL_BENCHMARK.md`](./docs/MODEL_BENCHMARK.md)); UI/profile/provider adapter tests run in `npm run check`.
+> - **Not verified:** human listening/UI QA, live provider behavior and long-session tests. Separation is **not marked complete** until listening tests are reviewed.
+> - **Not store-ready:** provider terms comparison, full license audit, final privacy review and screenshots remain pending.
 
 ## What makes the product different
 
@@ -37,7 +38,7 @@ npm run build        # outputs the loadable extension to dist/
 
 1. Open `chrome://extensions` and enable **Developer mode**.
 2. Click **Load unpacked** and select the **`dist/`** folder.
-3. Open a YouTube video, click the MixPilot icon, then choose **Enable MixPilot**.
+3. Open a YouTube video and click the MixPilot toolbar icon once to enable capture; use the in-player **Disable MixPilot** button to stop.
 
 Audio is processed locally and played back through the same tab's output.
 
@@ -58,7 +59,7 @@ The end-to-end test verifies capture, signal flow, gain accuracy, mute, and the 
 
 ## Stop audio processing
 
-Open the extension popup and click **Disable MixPilot**. Capture also stops when the captured tab closes, navigates away from YouTube, or when the extension is reloaded.
+Use the in-player **Disable MixPilot** button or click the toolbar icon again. Capture also stops when the captured tab closes, navigates away from YouTube, or when the extension is reloaded.
 
 ## Permissions
 
@@ -66,8 +67,9 @@ Open the extension popup and click **Disable MixPilot**. Capture also stops when
 |---|---|
 | `tabCapture` + `activeTab` | Capture the current tab's audio, only after you click the extension |
 | `offscreen` | Host the audio engine in a hidden extension page; MV3 service workers can't run Web Audio |
-| `storage` | Remember settings |
-| `https://*.youtube.com/*` | Know when the captured tab leaves YouTube (to stop capture), and later read the video timestamp for song history. No other sites. |
+| `storage` | Store settings, mix profiles, optional user-managed AudD token and local recognition history |
+| `https://*.youtube.com/*` | YouTube in-player controls, tab lifecycle validation and video/timestamp history. No other playback sites. |
+| `https://api.audd.io/*` | Send a short music-stem excerpt only after the user requests recognition and accepts the disclosure. |
 
 The extension's CSP adds `'wasm-unsafe-eval'` so the **bundled** ONNX Runtime WebAssembly can compile. It doesn't allow remote code: `script-src` is still `'self'` only.
 
@@ -85,9 +87,10 @@ The extension's CSP adds `'wasm-unsafe-eval'` so the **bundled** ONNX Runtime We
 | Independent speech/music gains (0–200%) | Implemented on separate model outputs; E2E-tested |
 | A/B original (latency- and level-matched) | Implemented; E2E-tested (within 0.13 dB) |
 | Overload/unsupported fallback | Implemented; E2E-tested (worker stall → original audio → automatic recovery) |
-| Music recognition | Not implemented |
-| Per-video/channel profiles | Not implemented |
-| YouTube in-player controls | Not implemented |
+| YouTube-native mixer (meters, presets, mute/restore, A/B, reset, statuses) | Implemented; manual UI QA pending |
+| Music recognition | AudD adapter + consent + local timestamped history/seek/delete; real provider tests and terms review pending |
+| Per-video/channel/global profiles | Implemented with video > channel > global precedence; manual SPA/profile QA pending |
+| Privacy/store readiness | Draft policy and checklist; not release-ready |
 
 ## Important technical note
 
@@ -95,21 +98,11 @@ An equalizer can change frequency bands, but it cannot reliably separate a speak
 
 ## Privacy direction
 
-The intended default is on-device processing. No audio should be uploaded for ordinary playback or source separation. Music recognition should only send a short, user-selected excerpt to a recognition provider after an explicit action and clear disclosure. Do not store raw audio by default.
+Ordinary playback and separation are on-device. Recognition is opt-in per request and uploads an eight-second Music-stem excerpt to AudD after a consent sheet; the user supplies and stores the token locally. MixPilot keeps metadata history locally, not the excerpt. Review [`docs/PRIVACY_POLICY_DRAFT.md`](./docs/PRIVACY_POLICY_DRAFT.md) and [`docs/STORE_READINESS.md`](./docs/STORE_READINESS.md); both real-provider QA and legal/provider review are still required.
 
-## GitHub repository setup
+## Release readiness
 
-This working copy is ready to initialize as a Git repository. To create a private GitHub repository and push the first commit with GitHub CLI:
-
-```bash
-git init
-git add .
-git commit -m "chore: initialize MixPilot Chrome extension"
-gh auth login
-gh repo create mixpilot-chrome-extension --private --source=. --remote=origin --push
-```
-
-To make it public, replace `--private` with `--public`. Review the files before publishing and do not commit API keys, user audio, model files with unclear redistribution rights, or local build artifacts.
+The project is already maintained in Git. Do not publish a release until the open items in [`docs/STORE_READINESS.md`](./docs/STORE_READINESS.md) have been completed. Never commit user API tokens, audio, or ignored build/benchmark artifacts.
 
 ## License
 

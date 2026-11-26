@@ -1,9 +1,11 @@
 # MixPilot — Audit & Development Plan
 
-**Date:** 2026-11-23 · **Status:**
+**Updated:** 2026-11-26 · **Status:**
 - **Phase A complete:** baseline fixed and E2E-tested; model selected.
-- **Phase B complete:** live separation engine integrated and verified (see `MODEL_BENCHMARK.md` § In-extension results). Listening tests pending.
-- **Next:** Phase C (mixer UI).
+- **Phase B complete (automated/objective):** live separation integrated and benchmarked. Human listening tests remain pending.
+- **Phase C implemented:** YouTube-native mixer controls, presets, mute/restore, level meters, status, A/B, reset and scoped profiles. Human UI/audio QA and screenshots remain pending.
+- **Phase D implemented as an AudD first adapter:** consent-gated eight-second music-stem excerpt, user-managed token, local timestamped history and seek/delete. Real-provider tests and AudD-vs-ACRCloud terms/pricing/privacy review remain pending; do not call it release-ready.
+- **Phase E partially implemented:** video > channel > global profiles, SPA reapplication, privacy-policy draft and initial permission notes. Long-session QA, full license/CSP/store review, and final privacy/legal review remain pending.
 
 ## 1. Repository audit
 
@@ -96,7 +98,7 @@ offscreen document: getUserMedia(tab) → AudioContext
 
 1. **Downloads for benchmarking:** model weights (DeepFilterNet3 ONNX, Spleeter 2-stem ONNX; tens of MB total), `npm install` of onnxruntime-web, esbuild and vitest, and a small set of openly licensed speech and music clips. All go into git-ignored folders.
 2. **Local git:** run `git init` and make local commits per phase (no remote, no push), so every change is reviewable and reversible.
-3. **Recognition provider keys** won't be needed until Phase D.
+3. **Recognition token:** Phase D now supports an optional user-managed AudD token. No token is required for builds or ordinary local playback; live recognition testing requires a token and per-request consent.
 
 ## Sources
 

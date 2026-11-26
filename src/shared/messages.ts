@@ -22,6 +22,21 @@ export interface Preferences {
 
 export interface PublicState extends SessionState, Preferences {}
 
+export interface RecognitionResult {
+  title: string;
+  artist: string;
+  album?: string;
+  releaseDate?: string;
+  songUrl?: string;
+  provider: "AudD";
+}
+export interface RecognitionHistoryEntry extends RecognitionResult {
+  id: string;
+  videoUrl: string;
+  timestamp: number;
+  createdAt: number;
+}
+
 export const DEFAULT_SESSION: SessionState = { active: false, activeTabId: null, bypass: false };
 export const DEFAULT_PREFERENCES: Preferences = { speechGain: 1, musicGain: 1, masterGain: 1, latency: "balanced" };
 
@@ -37,8 +52,12 @@ export type PopupRequest =
   | { type: "START_CAPTURE" }
   | { type: "STOP_CAPTURE" }
   | { type: "SET_MIX"; mix: MixUpdate }
+  | { type: "SET_RUNTIME_MIX"; mix: MixUpdate }
   | { type: "SET_BYPASS"; on: boolean }
-  | { type: "GET_ENGINE_STATS" };
+  | { type: "GET_ENGINE_STATS" }
+  | { type: "IDENTIFY_MUSIC"; videoUrl: string; timestamp: number }
+  | { type: "GET_RECOGNITION_HISTORY" }
+  | { type: "DELETE_RECOGNITION_HISTORY"; id?: string };
 
 export type Response<T = PublicState> =
   | { ok: true; state: T; message?: string }
@@ -50,9 +69,10 @@ export type OffscreenRequest =
   | { target: "offscreen"; type: "OFFSCREEN_STOP_CAPTURE" }
   | { target: "offscreen"; type: "OFFSCREEN_SET_MIX"; mix: MixUpdate }
   | { target: "offscreen"; type: "OFFSCREEN_SET_BYPASS"; on: boolean }
-  | { target: "offscreen"; type: "OFFSCREEN_GET_STATS" };
+  | { target: "offscreen"; type: "OFFSCREEN_GET_STATS" }
+  | { target: "offscreen"; type: "OFFSCREEN_IDENTIFY_MUSIC"; token: string };
 
 // offscreen -> service worker (unsolicited events)
 export type OffscreenEvent = { target: "background"; type: "CAPTURE_ENDED"; reason: string };
 
-export type OffscreenResponse = { ok: true; stats?: EngineSnapshot } | { ok: false; error: string };
+export type OffscreenResponse = { ok: true; stats?: EngineSnapshot; result?: RecognitionResult } | { ok: false; error: string };
