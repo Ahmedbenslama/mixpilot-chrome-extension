@@ -2,15 +2,14 @@
 
 **Your video. Your mix.**
 
-MixPilot is a Chrome extension for taking control of the audio mix in YouTube videos: local speech/music separation, independent stem gains, optional consent-gated music recognition, and mix profiles.
+MixPilot is a Chrome extension for taking control of speech and background sound in YouTube videos.
 
 > **Current status (v0.4.0):**
-> - **Works today:** on-device speech/music separation, independent Speech/Music/Master controls, mute/restore, presets, level meters, A/B, reset and automatic passthrough fallback.
-> - **Recognition:** optional AudD adapter captures an eight-second excerpt from the separated Music stem after explicit consent; requires your own token. Matches and timestamps are stored locally. Real provider verification remains pending.
-> - **Profiles:** global, channel and video scopes with video > channel > global precedence.
-> - **Verified:** existing engine measurements and automated unit/build checks (see [`docs/MODEL_BENCHMARK.md`](./docs/MODEL_BENCHMARK.md)); UI/profile/provider adapter tests run in `npm run check`.
-> - **Not verified:** human listening/UI QA, live provider behavior and long-session tests. Separation is **not marked complete** until listening tests are reviewed.
-> - **Not store-ready:** provider terms comparison, full license audit, final privacy review and screenshots remain pending.
+> - **Current UI:** deliberately minimal monochrome panel with bold Speech, Music/other and Master sliders plus one Restore button. Capture starts/stops from the browser toolbar icon.
+> - **Audio model:** DeepFilterNet3 remains in use. Speech at 0% mutes the estimated Speech output, but speech can still leak into the residual Music stem. See [`docs/MODEL_REVIEW_2026-11.md`](./docs/MODEL_REVIEW_2026-11.md); no replacement has yet passed real-music and Chrome validation.
+> - **Not verified:** human listening/UI QA and long-session tests. Separation is **not marked complete** until listening tests are reviewed.
+> - **Advanced features:** recognition and profiles are not exposed in the current minimal panel.
+> - **Not store-ready:** full provider/model/license evaluation, privacy review and screenshots remain pending.
 
 ## What makes the product different
 
@@ -87,9 +86,10 @@ The extension's CSP adds `'wasm-unsafe-eval'` so the **bundled** ONNX Runtime We
 | Independent speech/music gains (0–200%) | Implemented on separate model outputs; E2E-tested |
 | A/B original (latency- and level-matched) | Implemented; E2E-tested (within 0.13 dB) |
 | Overload/unsupported fallback | Implemented; E2E-tested (worker stall → original audio → automatic recovery) |
-| YouTube-native mixer (meters, presets, mute/restore, A/B, reset, statuses) | Implemented; manual UI QA pending |
-| Music recognition | AudD adapter + consent + local timestamped history/seek/delete; real provider tests and terms review pending |
-| Per-video/channel/global profiles | Implemented with video > channel > global precedence; manual SPA/profile QA pending |
+| YouTube-native mixer | Minimal monochrome Speech/Music/Master sliders and Restore; manual visual QA pending |
+| Speech/music source separation | DeepFilterNet3 remains; audible speech leakage in residual Music is a known limitation. Real-music model replacement not validated |
+| Music recognition | AudD adapter exists in code but is not exposed in the minimal panel |
+| Per-video/channel/global profiles | Prior implementation is not exposed or applied in the current minimal panel |
 | Privacy/store readiness | Draft policy and checklist; not release-ready |
 
 ## Important technical note

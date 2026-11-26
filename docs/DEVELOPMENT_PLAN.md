@@ -3,9 +3,10 @@
 **Updated:** 2026-11-26 · **Status:**
 - **Phase A complete:** baseline fixed and E2E-tested; model selected.
 - **Phase B complete (automated/objective):** live separation integrated and benchmarked. Human listening tests remain pending.
-- **Phase C implemented:** YouTube-native mixer controls, presets, mute/restore, level meters, status, A/B, reset and scoped profiles. Human UI/audio QA and screenshots remain pending.
-- **Phase D implemented as an AudD first adapter:** consent-gated eight-second music-stem excerpt, user-managed token, local timestamped history and seek/delete. Real-provider tests and AudD-vs-ACRCloud terms/pricing/privacy review remain pending; do not call it release-ready.
-- **Phase E partially implemented:** video > channel > global profiles, SPA reapplication, privacy-policy draft and initial permission notes. Long-session QA, full license/CSP/store review, and final privacy/legal review remain pending.
+- **Phase C UI revised per user request:** monochrome panel with bold Speech/Music/Master sliders and one Restore button. Toolbar action is required to capture. Human UI/audio QA remains pending.
+- **Phase D backend exists but is not exposed in the current minimal UI:** AudD adapter, consent flow, music-stem excerpt and local history are retained in code. Real-provider and provider-terms review remain pending.
+- **Phase E partially implemented but not active in the current UI:** profile code and policy drafts remain in the repository, but profiles are not exposed or applied by the simplified panel. Long-session QA, full license/CSP/store review and final privacy/legal review remain pending.
+- **Model review:** DFN3 is unchanged. UL-UNAS is a research candidate from an exploratory synthetic-tones smoke test, but no model has passed real-music leakage and Chrome-latency validation; see `MODEL_REVIEW_2026-11.md`.
 
 ## 1. Repository audit
 

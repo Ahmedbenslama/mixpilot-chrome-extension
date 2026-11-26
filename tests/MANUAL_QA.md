@@ -28,17 +28,14 @@ Automated coverage: `npm run check` runs typecheck, unit tests and build. Chrome
 - [ ] Long session (≥ 30 min): memory, CPU and latency stay stable.
 - [ ] Record intelligibility, music artifacts, CPU/memory, latency and underruns. Do not mark separation complete until these human results are reviewed.
 
-## Phase C: mixer UI
+## Phase C: minimalist mixer UI
 
-- [ ] Layout works under the YouTube player in dark and light YouTube themes and at narrow viewport widths.
-- [ ] Keyboard Tab/Shift+Tab and arrow-key slider controls work; focus remains visible and YouTube shortcuts do not steal control while a slider is focused.
-- [ ] Speech and Music sliders are independent. Music's explanatory copy says it includes everything except speech.
-- [ ] Mute sets exactly 0%; Restore returns to the previous level. Dragging the slider away from 0 synchronizes the mute control.
-- [ ] Meter responds to actual stem/output level and shows silence as −∞ dBFS.
-- [ ] Balanced, Dialogue, Music and Lecture presets update real engine gains; Custom reflects manual edits.
-- [ ] Master, Reset, A/B, Starting/Loading/Separating/Too slow/Unavailable/Error states work.
-- [ ] Click Enable/Disable repeatedly; error messaging and original-audio fallback remain clear.
-- [ ] Capture and separation remain after navigating within YouTube; UI is reattached once, not duplicated.
+- [ ] Panel uses monochrome black/white/gray only: no colored accents, icons, meters, cards or decorative animation.
+- [ ] Three bold, high-contrast sliders (Speech, Music/other, Master) are visible and keyboard operable; values update correctly.
+- [ ] Restore returns all slider values to 100% and leaves the player on the processed balanced mix.
+- [ ] Inactive status clearly tells the user to click the MixPilot toolbar icon; clicking the page panel cannot grant `activeTab`.
+- [ ] Clicking the toolbar icon on a YouTube watch page enables capture; clicking it again disables capture.
+- [ ] Status/error text remains legible without colored styling, and the controls stay attached exactly once during YouTube SPA navigation.
 
 ## Phase D: recognition (requires an authorized user-managed AudD token)
 

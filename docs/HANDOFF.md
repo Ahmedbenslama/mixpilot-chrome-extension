@@ -1,6 +1,6 @@
 # MixPilot — Session Handoff
 
-> **Update 2026-11-26:** Phases C–E have since received implementation work on the active branch. The mixer UI now includes two stem channels/meters, mute/restore, presets, master, A/B, reset, status and profiles; AudD consented recognition, a token setup, eight-second music-stem recording, and local timestamped history are implemented. These additions pass typecheck/unit/build, but live Chrome UI QA, human listening, real AudD tests, long-session testing and release audits are still outstanding. See `docs/DEVELOPMENT_PLAN.md`, `docs/RECOGNITION.md` and `docs/STORE_READINESS.md` for current truth. The dated notes below describe the earlier handoff and are retained for architecture context.
+> **Update 2026-11-26:** The current content-panel UI has been simplified to monochrome Speech/Music/Master sliders and one Restore button. The toolbar icon is the only capture-start gesture. DFN3 remains the shipped model; `docs/MODEL_REVIEW_2026-11.md` records a promising UL-UNAS smoke test and why no unvalidated replacement was shipped. Recognition/profile backend work from the previous iteration remains in code but is not exposed/applied by this minimal panel. Typecheck, unit tests and build pass; live Chrome UI QA, real-music model tests, human listening, and E2E remain outstanding. The dated notes below describe earlier UI state and are retained for architecture context.
 
 **Written:** 2026-11-23, at the end of the session that completed **Phase A** and **Phase B**.
 **Audience:** the next coding agent.
@@ -29,9 +29,9 @@ MixPilot is a Chrome MV3 extension for YouTube: two independent stems (**Speech*
 |---|---|
 | A — audit, baseline fixes, model research/benchmark | ✅ Done (see repository history) |
 | B — live separation engine | ✅ Automated/objective validation complete. **Human listening test pending**, so separation is not declared complete. |
-| C — designed mixer UI | ✅ Implemented in YouTube content panel; manual accessibility/responsive/audio QA and screenshots pending. |
-| D — music recognition | ✅ AudD adapter, per-request consent, music-stem recorder, local history/seek/delete implemented. Real provider test and provider terms comparison pending. |
-| E — profiles and store readiness | 🟡 Video/channel/global precedence, SPA reapply, policy draft and audit checklist implemented; long-session, full license/store and legal review pending. |
+| C — mixer UI | ✅ Minimal monochrome Speech/Music/Master sliders and Restore in the YouTube panel; manual UI/audio QA pending. |
+| D — music recognition | 🟡 Adapter/backend remains in code but is not exposed in current minimal UI; provider test and terms comparison pending. |
+| E — profiles and store readiness | 🟡 Profile code/policy drafts remain, but profiles are not applied or exposed by current minimal UI; release review pending. |
 
 **Works today:**
 1. Enable on a YouTube tab.
