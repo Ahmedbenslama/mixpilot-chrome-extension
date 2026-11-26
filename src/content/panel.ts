@@ -89,7 +89,12 @@ function render(next: PublicState): void {
     statusNode.append(dot, document.createTextNode(statusText()));
   }
   const toggle = host?.shadowRoot?.querySelector<HTMLButtonElement>(".toggle");
-  if (toggle) { toggle.textContent = next.active ? "Disable MixPilot" : "Enable MixPilot"; toggle.setAttribute("aria-pressed", String(next.active)); }
+  if (toggle) {
+    toggle.textContent = next.active ? "Disable MixPilot" : "Enable from toolbar";
+    toggle.title = next.active ? "Stop tab audio processing." : "Click the MixPilot toolbar icon to grant Chrome's tab-capture permission and start.";
+    toggle.setAttribute("aria-label", next.active ? "Disable MixPilot" : "Enable MixPilot by clicking the browser toolbar icon");
+    toggle.setAttribute("aria-pressed", String(next.active));
+  }
   const ab = host?.shadowRoot?.querySelector<HTMLButtonElement>("#ab");
   if (ab) { ab.disabled = !next.active; ab.setAttribute("aria-pressed", String(next.bypass)); ab.textContent = next.bypass ? "Return to mix" : "Hear original · A/B"; }
   const reset = host?.shadowRoot?.querySelector<HTMLButtonElement>("#reset"); if (reset) reset.disabled = false;
@@ -227,9 +232,14 @@ function buildPanel(): HTMLElement {
   const brandBox = el("div"); const brand = el("div", "brand"); brand.textContent = "mixpilot"; const tag = el("div", "tag"); tag.textContent = "LOCAL SPEECH + SOUND MIXER"; brandBox.append(brand, tag); lockup.append(icon, brandBox);
   const right = el("div", "head-right"); statusNode = el("div", "status"); statusNode.setAttribute("role", "status"); statusNode.setAttribute("aria-live", "polite");
   const toggle = el("button", "toggle"); toggle.type = "button"; toggle.addEventListener("click", async () => {
-    if (!state) return; toggle.disabled = true; toggle.textContent = state.active ? "Stopping…" : "Starting…";
-    const res = await send({ type: state.active ? "STOP_CAPTURE" : "START_CAPTURE" });
-    if (res?.state) render(res.state); if (!res?.ok) notify(res?.error ?? "MixPilot could not start.", true);
+    if (!state) return;
+    if (!state.active) {
+      notify("To enable tab audio, click the MixPilot toolbar icon. Chrome grants capture permission from that explicit browser action.");
+      return;
+    }
+    toggle.disabled = true; toggle.textContent = "Stopping…";
+    const res = await send({ type: "STOP_CAPTURE" });
+    if (res?.state) render(res.state); if (!res?.ok) notify(res?.error ?? "MixPilot could not stop.", true);
     toggle.disabled = false;
   }); right.append(statusNode, toggle); header.append(lockup, right);
   const stemHead = el("div", "section-head"); const title = el("strong"); title.textContent = "Independent channels"; const explainer = el("span", "note"); explainer.textContent = "Music = everything except speech"; stemHead.append(title, explainer);
